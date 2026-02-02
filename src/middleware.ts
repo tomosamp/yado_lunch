@@ -1,5 +1,5 @@
 import { withAuth } from "next-auth/middleware";
-import type { NextRequest } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 const authMiddleware = withAuth({
@@ -10,7 +10,7 @@ const authMiddleware = withAuth({
   },
 });
 
-export default function middleware(req: NextRequest) {
+export default function middleware(req: NextRequest, ev: NextFetchEvent) {
   // たまに別ドメイン（Deployment URL等）でアクセスされると、OAuthのredirect_uriが揺れて mismatch になり得るため、
   // NEXTAUTH_URL のホストへ寄せる（canonical化）。
   const canonical = process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).host : "";
@@ -26,7 +26,7 @@ export default function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  return authMiddleware(req);
+  return authMiddleware(req, ev);
 }
 
 export const config = {
