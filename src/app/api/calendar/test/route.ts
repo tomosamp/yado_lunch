@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const times = buildTokyoEventTimes(ymd);
 
     const event = {
-      summary: "ランチ会（テスト）",
+      summary: "ランチ会（自動作成テスト）",
       ...times,
       attendees: [{ email: userEmail }, { email: String(otherEmail).trim() }],
     };
