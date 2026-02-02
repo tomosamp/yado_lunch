@@ -837,31 +837,41 @@
     })();
 
     const tips = el("div", { class: "card" }, [
-      el("div", { class: "card__title", text: "使い方（最短）" }),
+      el("div", { class: "card__title", text: "使い方（まとめ）" }),
       el("ol", {}, [
-        el("li", { class: "muted" }, ["社員で「親（責任者）」を4人ONにする"]),
-        el("li", { class: "muted" }, ["同席NGがあれば登録する"]),
-        el("li", { class: "muted" }, ["グループ生成で対象月を選んで月次生成→（必要なら）一括再生成→一括確定"]),
+        el("li", { class: "muted" }, ["社員で「親（責任者）」を設定（通常4人）"]),
+        el("li", { class: "muted" }, ["社員のメールを登録（Googleカレンダー招待に必須）"]),
+        el("li", { class: "muted" }, ["同席NG（ペア）があれば登録"]),
+        el("li", { class: "muted" }, ["グループ生成で対象月を選択 → 月次生成"]),
+        el("li", { class: "muted" }, ["月次プランで表/週カードを確認 → 必要なら一括再生成 → 問題なければ一括確定"]),
+        el("li", { class: "muted" }, ["月次プランで「Googleカレンダー登録」→ 月曜12:00-13:00（JST）で予定作成 + 招待通知（sendUpdates=all）"]),
       ]),
     ]);
 
     const calendarTest = (() => {
-      const target = state.members.find((m) => m.name === "吉田（や）") || null;
-      const targetEmail = String(target?.email || "").trim();
+      const members = [...state.members].sort(byName);
+      const options = [
+        el("option", { value: "", text: "招待する社員を選択" }),
+        ...members.map((m) => el("option", { value: m.id, text: m.email ? `${m.name}（${m.email}）` : `${m.name}（メール未登録）` })),
+      ];
+      const select = el("select", { name: "calendar-test-member" }, options);
       const note = el("div", { class: "muted" }, [
         "Googleカレンダー登録は、ログイン時に権限許可が必要です（権限追加後は一度ログアウト→再ログイン推奨）。",
       ]);
-      const hint = el("div", { class: "muted", style: "margin-top:8px" }, [
-        `テスト: ログイン中のあなた + 吉田（や）で次の月曜 12:00-13:00（JST）を作成します。`,
-      ]);
+      const hint = el("div", { class: "muted", style: "margin-top:8px" }, [`テスト: ログイン中のあなた + 選択した社員で次の月曜 12:00-13:00（JST）を作成します。`]);
       const btn = el("button", {
         class: "btn btn--primary",
+        type: "button",
         text: "テスト予定を作成",
-        onclick: async () => {
-          const other = targetEmail;
-          if (!other) return alert("吉田（や）のメールが未登録です。社員画面でメールを登録してください。");
-          if (!isValidEmail(other)) return alert("吉田（や）のメール形式が不正です。社員画面で修正してください。");
-          if (!confirm(`Googleカレンダーにテスト予定を作成します。\n\n招待先: ${other}\n通知: sendUpdates=all`)) return;
+        onclick: async (e) => {
+          e.preventDefault();
+          const memberId = String(select.value || "").trim();
+          if (!memberId) return alert("招待する社員を選択してください。");
+          const m = state.members.find((x) => x.id === memberId) || null;
+          const other = String(m?.email || "").trim();
+          if (!other) return alert(`${m?.name || "選択した社員"}のメールが未登録です。社員画面でメールを登録してください。`);
+          if (!isValidEmail(other)) return alert(`${m?.name || "選択した社員"}のメール形式が不正です。社員画面で修正してください。`);
+          if (!confirm(`Googleカレンダーにテスト予定を作成します。\n\n予定名: ランチ会（自動作成テスト）\n招待先: ${other}\n通知: sendUpdates=all`)) return;
           try {
             const res = await createCalendarTestEvent(other);
             const link = res?.htmlLink ? `\n\n${res.htmlLink}` : "";
@@ -875,6 +885,8 @@
         el("div", { class: "card__title", text: "Googleカレンダー（テスト）" }),
         note,
         hint,
+        el("div", { class: "hr" }),
+        el("div", { class: "grid" }, [el("div", { class: "col-12" }, [el("label", {}, [el("span", { text: "招待する社員" }), select])])]),
         el("div", { class: "hr" }),
         el("div", { class: "row" }, [btn, el("a", { class: "btn", href: "#/members", text: "社員でメールを編集" })]),
       ]);
