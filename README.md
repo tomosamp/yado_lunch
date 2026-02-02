@@ -17,7 +17,6 @@ Vercel等にデプロイして使うことを想定した、社内ランチ会�
 
 ## 起動方法
 ```bash
-cd app
 npm install
 cp .env.example .env.local
 npm run dev
@@ -35,9 +34,17 @@ Google Cloud ConsoleでOAuthクライアントを作成し、以下を設定し�
 - `.env.local` に `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `NEXTAUTH_URL` / `NEXTAUTH_SECRET`
 
 ## Vercelにデプロイする場合
-- VercelのProject Settingsで **Root Directory を `app`** に設定してください。
+- リポジトリの直下がこのNext.jsプロジェクトなら、そのままでOKです。
+  - もしリポジトリ直下に `app/` があり、その配下がNext.jsプロジェクトになっている構成なら、VercelのProject Settingsで **Root Directory を `app`** に設定してください。
 - 環境変数は `.env.example` と同様に設定してください。
+- 共有・永続化のために **Postgres（Supabase/Neon/Vercel Postgres等）** を接続するのがおすすめです（未接続でもlocalStorageで動作します）。
 
 ## データの保存場所
-- 現状のデータはブラウザの `localStorage`（ユーザーごと/端末ごと）に保存されます。
-- 共有したい場合は、画面の `エクスポート/インポート` を使ってJSONで移行できます（将来、DB共有に移行可能）。
+- 既定は **DB（Postgres） + localStorage（キャッシュ）** です。
+  - DB未接続時は localStorage のみで動作します。
+  - 共有したい場合はPostgresを接続してください（運営/閲覧者で同じデータになります）。
+- 画面の `エクスポート/インポート` を使ってJSONでバックアップ/移行もできます。
+
+### SupabaseでDBを用意する場合（例）
+- Vercelの `Storage` で `Create Database` → `Supabase` を選んで接続
+- Vercelの環境変数に `DATABASE_URL`（または `POSTGRES_URL`）が入っていればOKです（`NEXT_PUBLIC_` は付けない）
