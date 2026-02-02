@@ -34,12 +34,12 @@
     { name: "土岐", email: "haruhisa-toki@yadokari.tv" },
     { name: "竹中", email: "aoi-takenaka@yadokari.tv" },
     { name: "五十嵐", email: "asahi-igarashi@yadokari.tv" },
-    { name: "井口", email: "" },
-    { name: "吉田（ネ）", email: "" },
-    { name: "間藤", email: "" },
-    { name: "西", email: "" },
-    { name: "大堀", email: "" },
-    { name: "大竹", email: "" },
+    { name: "井口", email: "misuzu-iguchi@neccos.jp" },
+    { name: "吉田（ネ）", email: "naoki-yoshida@neccos.jp" },
+    { name: "間藤", email: "misaki-mato@neccos.jp" },
+    { name: "西", email: "aimi-nishi@neccos.jp" },
+    { name: "大堀", email: "kaho-oohori@neccos.jp" },
+    { name: "大竹", email: "ikumi-ootake@neccos.jp" },
   ];
 
   const DEFAULT_PARENT_NAMES = ["松澤", "福森", "間藤", "吉田（ネ）"];
