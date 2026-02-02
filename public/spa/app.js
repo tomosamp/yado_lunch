@@ -1054,14 +1054,15 @@
       el("div", { class: "grid" }, [
         el("div", { class: "col-12" }, kpi),
         el("div", { class: "col-8" }, el("div", { class: "grid" }, [el("div", { class: "col-12" }, latestCard), recentPlans ? el("div", { class: "col-12" }, recentPlans) : null])),
-        el("div", { class: "col-4" }, el("div", { class: "grid" }, [el("div", { class: "col-12" }, tips), el("div", { class: "col-12" }, calendarTest)])),
+        el("div", { class: "col-4" }, el("div", { class: "grid" }, [el("div", { class: "col-12" }, tips), el("div", { class: "col-12" }, syncCard), el("div", { class: "col-12" }, calendarTest)])),
       ])
     );
   }
 
   function renderMembers() {
     let editingId = null;
-    const membersSorted = [...state.members].sort(byName);
+    // 要望: 無効化した社員は一覧から非表示（復活はDB側で対応する想定）
+    const membersSorted = state.members.filter((m) => m.isActive).sort(byName);
 
     function resetForm(form) {
       editingId = null;
