@@ -48,3 +48,6 @@ Google Cloud ConsoleでOAuthクライアントを作成し、以下を設定し�
 ### SupabaseでDBを用意する場合（例）
 - Vercelの `Storage` で `Create Database` → `Supabase` を選んで接続
 - Vercelの環境変数に `DATABASE_URL`（または `POSTGRES_URL`）が入っていればOKです（`NEXT_PUBLIC_` は付けない）
+
+#### DB同期が `SELF_SIGNED_CERT_IN_CHAIN` になる場合
+Supabase接続で証明書チェーン検証が失敗している状態です。アプリ側で回避する実装を入れていますが、反映されていない場合は最新デプロイに更新してください。
