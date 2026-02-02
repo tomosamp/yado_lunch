@@ -1,45 +1,45 @@
 (() => {
   const STORAGE_KEY = "lunch-grouping:v1";
-  const SEEDED_DEFAULTS_KEY = "lunch-grouping:seeded-defaults:v4";
+  const SEEDED_DEFAULTS_KEY = "lunch-grouping:seeded-defaults:v5";
 
   const DEFAULT_MEMBER_NAMES = [
-    "松澤",
-    "荒木",
-    "福森",
-    "のり",
-    "関根",
-    "中小路",
-    "フエン",
-    "渡辺",
-    "村上",
-    "織田",
-    "知元",
-    "小永井",
-    "西川",
-    "木村",
-    "千本",
-    "ミン",
-    "小山",
-    "中山",
-    "五藤",
-    "三瓶",
-    "粕谷",
-    "中島",
-    "菅原",
-    "吉井",
-    "青山",
-    "加藤",
-    "ド",
-    "吉田（や）",
-    "土岐",
-    "竹中",
-    "五十嵐",
-    "井口",
-    "吉田（ネ）",
-    "間藤",
-    "西",
-    "大堀",
-    "大竹",
+    { name: "松澤", email: "matsuzawa@yadokari.tv" },
+    { name: "荒木", email: "araki@yadokari.tv" },
+    { name: "福森", email: "fukumori@yadokari.tv" },
+    { name: "のり", email: "noriko-matsuzawa@yadokari.tv" },
+    { name: "関根", email: "sekine@yadokari.tv" },
+    { name: "中小路", email: "nakakoji@yadokari.tv" },
+    { name: "村山", email: "murayama@yadokari.tv" },
+    { name: "フエン", email: "huyendt@yadokari.tv" },
+    { name: "渡辺", email: "k-watanabe@yadokari.tv" },
+    { name: "村上", email: "yasuhiro-murakami@yadokari.tv" },
+    { name: "織田", email: "orita@yadokari.tv" },
+    { name: "知元", email: "kazuyuki-chimoto@yadokari.tv" },
+    { name: "小永井", email: "konagai@yadokari.tv" },
+    { name: "木村", email: "yuki-kimura@yadokari.tv" },
+    { name: "千本", email: "takeshi-chimoto@yadokari.tv" },
+    { name: "ミン", email: "minhNH@yadokari.tv" },
+    { name: "小山", email: "eiji-koyama@yadokari.tv" },
+    { name: "中山", email: "yuki-nakayama@yadokari.tv" },
+    { name: "五藤", email: "yoko-goto@yadokari.tv" },
+    { name: "三瓶", email: "tomonori-sampei@yadokari.tv" },
+    { name: "粕谷", email: "motoi-kasuya@yadokari.tv" },
+    { name: "中島", email: "shogo-nakajima@yadokari.tv" },
+    { name: "菅原", email: "miki-sugahara@yadokari.tv" },
+    { name: "吉井", email: "daichi-yoshii@yadokari.tv" },
+    { name: "青山", email: "shoki-aoyama@yadokari.tv" },
+    { name: "加藤", email: "aya-kato@yadokari.tv" },
+    { name: "ド", email: "do-hyeonwoo@yadokari.tv" },
+    { name: "吉田（や）", email: "kengo-yoshida@yadokari.tv" },
+    { name: "土岐", email: "haruhisa-toki@yadokari.tv" },
+    { name: "竹中", email: "aoi-takenaka@yadokari.tv" },
+    { name: "五十嵐", email: "asahi-igarashi@yadokari.tv" },
+    { name: "井口", email: "" },
+    { name: "吉田（ネ）", email: "" },
+    { name: "間藤", email: "" },
+    { name: "西", email: "" },
+    { name: "大堀", email: "" },
+    { name: "大竹", email: "" },
   ];
 
   const DEFAULT_PARENT_NAMES = ["松澤", "福森", "間藤", "吉田（ネ）"];
@@ -79,6 +79,32 @@
       node.appendChild(typeof child === "string" ? document.createTextNode(child) : child);
     }
     return node;
+  }
+
+  function isValidEmail(email) {
+    if (typeof email !== "string") return false;
+    const v = email.trim();
+    if (!v) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  async function postJson(url, body) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = String(data?.error || data?.message || `HTTP ${res.status}`);
+      const details = data?.details ? `\n\n${JSON.stringify(data.details)}` : "";
+      throw new Error(`${msg}${details}`);
+    }
+    return data;
+  }
+
+  async function createCalendarTestEvent(otherEmail) {
+    return postJson("/api/calendar/test", { otherEmail });
+  }
+
+  async function createCalendarEvents(events) {
+    return postJson("/api/calendar/events", { events });
   }
 
   function readState() {
@@ -122,7 +148,8 @@
     const byNameMap = new Map(draft.members.map((m) => [String(m.name || "").trim(), m]).filter(([k]) => !!k));
     const ts = nowIso();
     for (const raw of names) {
-      const name = String(raw || "").trim();
+      const name = typeof raw === "string" ? String(raw || "").trim() : String(raw?.name || "").trim();
+      const email = typeof raw === "object" && raw ? String(raw.email || "").trim() : "";
       if (!name) continue;
       const existing = byNameMap.get(name) || null;
       if (existing) {
@@ -130,10 +157,14 @@
           existing.isParent = true;
           existing.updatedAt = ts;
         }
+        if (email && !existing.email) {
+          existing.email = email;
+          existing.updatedAt = ts;
+        }
         continue;
       }
       const isParent = parentSet.has(name);
-      const member = { id: uuid(), name, isActive: true, isParent, createdAt: ts, updatedAt: ts };
+      const member = { id: uuid(), name, email, isActive: true, isParent, createdAt: ts, updatedAt: ts };
       draft.members.push(member);
       byNameMap.set(name, member);
     }
@@ -153,14 +184,36 @@
     }
   }
 
+  function ensureDefaultEmails(draft) {
+    const ts = nowIso();
+    const emailMap = new Map(
+      DEFAULT_MEMBER_NAMES.map((x) => [String(x?.name || "").trim(), String(x?.email || "").trim()]).filter(([n, e]) => n && e)
+    );
+    for (const m of draft.members) {
+      const name = String(m.name || "").trim();
+      if (!name) continue;
+      if (m.email) continue;
+      const email = emailMap.get(name);
+      if (!email) continue;
+      m.email = email;
+      m.updatedAt = ts;
+    }
+  }
+
   if (localStorage.getItem(SEEDED_DEFAULTS_KEY) !== "1") {
     ensureDefaultParents(state);
+    ensureDefaultEmails(state);
     writeState(state);
     localStorage.setItem(SEEDED_DEFAULTS_KEY, "1");
   }
 
   function findMember(memberId) {
     return state.members.find((m) => m.id === memberId) || null;
+  }
+
+  function memberEmail(memberId) {
+    const m = findMember(memberId);
+    return String(m?.email || "").trim();
   }
 
   function activeMembers() {
@@ -775,13 +828,48 @@
       ]),
     ]);
 
+    const calendarTest = (() => {
+      const target = state.members.find((m) => m.name === "吉田（や）") || null;
+      const targetEmail = String(target?.email || "").trim();
+      const note = el("div", { class: "muted" }, [
+        "Googleカレンダー登録は、ログイン時に権限許可が必要です（権限追加後は一度ログアウト→再ログイン推奨）。",
+      ]);
+      const hint = el("div", { class: "muted", style: "margin-top:8px" }, [
+        `テスト: ログイン中のあなた + 吉田（や）で次の月曜 12:00-13:00（JST）を作成します。`,
+      ]);
+      const btn = el("button", {
+        class: "btn btn--primary",
+        text: "テスト予定を作成",
+        onclick: async () => {
+          const other = targetEmail;
+          if (!other) return alert("吉田（や）のメールが未登録です。社員画面でメールを登録してください。");
+          if (!isValidEmail(other)) return alert("吉田（や）のメール形式が不正です。社員画面で修正してください。");
+          if (!confirm(`Googleカレンダーにテスト予定を作成します。\n\n招待先: ${other}\n通知: sendUpdates=all`)) return;
+          try {
+            const res = await createCalendarTestEvent(other);
+            const link = res?.htmlLink ? `\n\n${res.htmlLink}` : "";
+            alert(`作成しました（${res?.date || ""}）。${link}`);
+          } catch (err) {
+            alert(String(err?.message || err));
+          }
+        },
+      });
+      return el("div", { class: "card" }, [
+        el("div", { class: "card__title", text: "Googleカレンダー（テスト）" }),
+        note,
+        hint,
+        el("div", { class: "hr" }),
+        el("div", { class: "row" }, [btn, el("a", { class: "btn", href: "#/members", text: "社員でメールを編集" })]),
+      ]);
+    })();
+
     return mountPage(
       "ダッシュボード",
       right,
       el("div", { class: "grid" }, [
         el("div", { class: "col-12" }, kpi),
         el("div", { class: "col-8" }, el("div", { class: "grid" }, [el("div", { class: "col-12" }, latestCard), recentPlans ? el("div", { class: "col-12" }, recentPlans) : null])),
-        el("div", { class: "col-4" }, tips),
+        el("div", { class: "col-4" }, el("div", { class: "grid" }, [el("div", { class: "col-12" }, tips), el("div", { class: "col-12" }, calendarTest)])),
       ])
     );
   }
@@ -793,6 +881,7 @@
     function resetForm(form) {
       editingId = null;
       form.querySelector('[name="name"]').value = "";
+      form.querySelector('[name="email"]').value = "";
       form.querySelector('[name="isParent"]').checked = false;
       form.querySelector('[name="isActive"]').checked = true;
       form.querySelector("#edit-badge").textContent = "新規";
@@ -802,7 +891,8 @@
       el("div", { class: "card__title" }, [el("span", { text: "社員の追加 / 編集" }), el("span", { class: "badge", id: "edit-badge", text: "新規" })]),
       el("div", { class: "grid" }, [
         el("div", { class: "col-6" }, [el("label", {}, [el("span", { text: "氏名" }), el("input", { name: "name", placeholder: "例: 松澤", autocomplete: "off" })])]),
-        el("div", { class: "col-6" }, [
+        el("div", { class: "col-6" }, [el("label", {}, [el("span", { text: "メール（招待用）" }), el("input", { name: "email", placeholder: "例: foo@yadokari.tv", autocomplete: "off" })])]),
+        el("div", { class: "col-12" }, [
           el("div", { class: "row" }, [
             el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isParent" }), el("span", { text: "親（責任者）" })]),
             el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isActive", checked: true }), el("span", { text: "有効" })]),
@@ -818,17 +908,20 @@
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const name = String(form.querySelector('[name="name"]').value || "").trim();
+      const email = String(form.querySelector('[name="email"]').value || "").trim();
       const isParent = !!form.querySelector('[name="isParent"]').checked;
       const isActive = !!form.querySelector('[name="isActive"]').checked;
       if (!name) return alert("氏名を入力してください。");
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert("メール形式が不正です。");
       setState((draft) => {
         const ts = nowIso();
         if (!editingId) {
-          draft.members.push({ id: uuid(), name, isActive, isParent, createdAt: ts, updatedAt: ts });
+          draft.members.push({ id: uuid(), name, email, isActive, isParent, createdAt: ts, updatedAt: ts });
         } else {
           const m = draft.members.find((x) => x.id === editingId);
           if (m) {
             m.name = name;
+            m.email = email;
             m.isActive = isActive;
             m.isParent = isParent;
             m.updatedAt = ts;
@@ -841,7 +934,7 @@
     const table = el("table", { class: "table" });
     table.appendChild(
       el("thead", {}, [
-        el("tr", {}, [el("th", { text: "氏名" }), el("th", { text: "有効" }), el("th", { text: "親" }), el("th", { text: "操作" })]),
+        el("tr", {}, [el("th", { text: "氏名" }), el("th", { text: "メール" }), el("th", { text: "有効" }), el("th", { text: "親" }), el("th", { text: "操作" })]),
       ])
     );
     const tbody = el("tbody");
@@ -852,6 +945,7 @@
         onclick: () => {
           editingId = m.id;
           form.querySelector('[name="name"]').value = m.name;
+          form.querySelector('[name="email"]').value = m.email || "";
           form.querySelector('[name="isParent"]').checked = !!m.isParent;
           form.querySelector('[name="isActive"]').checked = !!m.isActive;
           form.querySelector("#edit-badge").textContent = "編集中";
@@ -874,6 +968,7 @@
       tbody.appendChild(
         el("tr", {}, [
           el("td", { text: m.name }),
+          el("td", {}, [m.email ? el("span", { class: "mono", text: m.email }) : el("span", { class: "muted", text: "-" })]),
           el("td", {}, [m.isActive ? el("span", { class: "badge badge--ok", text: "有効" }) : el("span", { class: "badge", text: "無効" })]),
           el("td", {}, [m.isParent ? el("span", { class: "badge", text: "親" }) : el("span", { class: "muted", text: "-" })]),
           el("td", {}, [el("div", { class: "row" }, [editBtn, toggleBtn])]),
@@ -1210,10 +1305,68 @@
       location.hash = "#/runs";
     }
 
+    async function registerCalendar() {
+      const totalGroups = runs.reduce((acc, r) => acc + (r.groups || []).length, 0);
+      if (!confirm(`この月次プランの全グループ（${totalGroups}件）をGoogleカレンダーに登録します。\n招待通知: sendUpdates=all\n\n※メール未登録の社員がいると失敗します。`)) return;
+
+      const missing = [];
+      const events = [];
+      for (let i = 0; i < runs.length; i++) {
+        const run = runs[i];
+        const weekNo = i + 1;
+        const date = String(run.runDate || "").trim();
+        for (const g of run.groups || []) {
+          const ids = (g.members || []).map((m) => m.memberId);
+          const emails = [];
+          const names = [];
+          for (const id of ids) {
+            const m = findMember(id);
+            const name = m?.name || "(不明)";
+            names.push(name);
+            const email = String(m?.email || "").trim();
+            if (!email) missing.push(`${name}（${date} 第${weekNo}週）`);
+            else if (!isValidEmail(email)) missing.push(`${name}（形式不正: ${email}）`);
+            else emails.push(email);
+          }
+
+          if (emails.length !== ids.length) continue;
+
+          const parentName = findMember(g.parentMemberId)?.name || "(不明)";
+          events.push({
+            summary: `ランチ会（第${weekNo}週）`,
+            description: `対象月: ${formatMonthLabel(month)}\n実施日: ${date}（月）\n親: ${parentName}\n参加者: ${names.join(" / ")}\n`,
+            start: { dateTime: `${date}T12:00:00+09:00`, timeZone: "Asia/Tokyo" },
+            end: { dateTime: `${date}T13:00:00+09:00`, timeZone: "Asia/Tokyo" },
+            attendees: emails.map((email) => ({ email })),
+          });
+        }
+      }
+
+      if (missing.length > 0) {
+        const list = missing.slice(0, 12).join("\n");
+        const more = missing.length > 12 ? `\n...他${missing.length - 12}件` : "";
+        alert(`メール未登録/形式不正の社員があります。社員画面でメールを登録してから再実行してください。\n\n${list}${more}`);
+        return;
+      }
+      if (events.length === 0) return alert("作成対象のイベントが0件です。");
+
+      try {
+        const res = await createCalendarEvents(events);
+        const okCount = (res?.results || []).filter((x) => x.ok).length;
+        const ngCount = (res?.results || []).length - okCount;
+        const firstLink = (res?.results || []).find((x) => x.ok && x.htmlLink)?.htmlLink || "";
+        const linkMsg = firstLink ? `\n\n例: ${firstLink}` : "";
+        alert(`カレンダー登録しました。成功: ${okCount} / 失敗: ${ngCount}${linkMsg}`);
+      } catch (err) {
+        alert(String(err?.message || err));
+      }
+    }
+
     const headerRight = el("div", { class: "row" }, [
       el("a", { class: "btn", href: "#/runs", text: "履歴へ" }),
       el("button", { class: "btn", text: "一括再生成", onclick: rerollAll }),
       el("button", { class: "btn btn--primary", text: "一括確定", onclick: confirmAll }),
+      el("button", { class: "btn", text: "Googleカレンダー登録", onclick: registerCalendar }),
       el("button", { class: "btn btn--danger", text: "プラン削除", onclick: deletePlan }),
     ]);
 
