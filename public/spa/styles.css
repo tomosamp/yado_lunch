@@ -241,6 +241,9 @@ input[type="checkbox"] {
 
 .btn {
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 9px 12px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -248,10 +251,13 @@ input[type="checkbox"] {
   color: var(--text);
   font-weight: 650;
   font-size: 13px;
+  line-height: 1;
+  text-decoration: none;
 }
 
 .btn:hover {
   background: rgba(255, 255, 255, 0.95);
+  text-decoration: none;
 }
 
 .btn--primary {
