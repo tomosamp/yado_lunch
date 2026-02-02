@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ランチ会グルーピング</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="container header__inner">
+        <div class="brand">
+          <div class="brand__title">ランチ会グルーピング</div>
+          <div class="brand__subtitle">認証あり（Google）・保存: localStorage（暫定）</div>
+        </div>
+	        <nav class="nav" aria-label="メイン">
+	          <a class="nav__link" href="#/">ダッシュボード</a>
+	          <a class="nav__link" href="#/runs/new">グループ生成</a>
+	          <a class="nav__link" href="#/members">社員</a>
+	          <a class="nav__link" href="#/exclusions">同席NG</a>
+	          <a class="nav__link" href="#/runs">履歴</a>
+	          <a class="nav__link" href="/api/auth/signout?callbackUrl=/login">ログアウト</a>
+	        </nav>
+	      </div>
+	    </header>
+
+    <main class="container">
+      <noscript>
+        <div class="card card--danger">
+          JavaScriptが無効です。このアプリを使うにはJavaScriptを有効にしてください。
+        </div>
+      </noscript>
+      <div id="app"></div>
+    </main>
+
+    <footer class="footer container">
+      <div class="muted">
+        データはこのブラウザのlocalStorageに保存されます（共有したい場合はエクスポート/インポート）。
+      </div>
+    </footer>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
