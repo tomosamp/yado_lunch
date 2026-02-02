@@ -89,7 +89,13 @@
   }
 
   async function postJson(url, body) {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) });
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify(body ?? {}),
+    });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const msg = String(data?.error || data?.message || `HTTP ${res.status}`);
