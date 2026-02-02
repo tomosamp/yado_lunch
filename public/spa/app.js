@@ -674,12 +674,23 @@
       ["/exclusions", "#/exclusions"],
       ["/runs", "#/runs"],
     ];
-    for (const [key, href] of mapping) {
-      if (route === key || (key !== "/" && route.startsWith(key))) {
-        const hit = [...links].find((a) => a.getAttribute("href") === href);
-        if (hit) hit.classList.add("is-active");
+
+    // より具体的なパス（長いキー）を優先して1つだけアクティブにする
+    const ordered = [...mapping].sort((a, b) => String(b[0]).length - String(a[0]).length);
+    let activeHref = null;
+    for (const [key, href] of ordered) {
+      if (key === "/" && route === "/") {
+        activeHref = href;
+        break;
+      }
+      if (key !== "/" && (route === key || route.startsWith(`${key}/`))) {
+        activeHref = href;
+        break;
       }
     }
+    if (!activeHref) return;
+    const hit = [...links].find((a) => a.getAttribute("href") === activeHref);
+    if (hit) hit.classList.add("is-active");
   }
 
   function routeInfo() {
