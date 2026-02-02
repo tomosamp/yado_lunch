@@ -105,12 +105,38 @@
     return data;
   }
 
+  async function requestJson(url, { method = "GET", body } = {}) {
+    const hasBody = body !== undefined && body !== null && method !== "GET" && method !== "HEAD";
+    const res = await fetch(url, {
+      method,
+      headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+      credentials: "include",
+      cache: "no-store",
+      body: hasBody ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = String(data?.error || data?.message || `HTTP ${res.status}`);
+      const details = data?.details ? `\n\n${JSON.stringify(data.details)}` : "";
+      throw new Error(`${msg}${details}`);
+    }
+    return data;
+  }
+
   async function createCalendarTestEvent(otherEmail) {
     return postJson("/api/calendar/test", { otherEmail });
   }
 
   async function createCalendarEvents(events) {
     return postJson("/api/calendar/events", { events });
+  }
+
+  async function fetchServerState() {
+    return requestJson("/api/state", { method: "GET" });
+  }
+
+  async function saveServerState({ state, expectedUpdatedAt }) {
+    return requestJson("/api/state", { method: "PUT", body: { state, expectedUpdatedAt } });
   }
 
   function readState() {
@@ -136,10 +162,109 @@
 
   let state = readState();
 
+  const remoteSync = {
+    status: "idle", // idle | loading | ok | conflict | db_off | unauth | error
+    updatedAt: null,
+    lastError: "",
+    saving: false,
+  };
+
+  let suppressRemoteSaveOnce = false;
+  let saveTimer = null;
+
+  function setRemoteStatus(status, err = "") {
+    remoteSync.status = status;
+    remoteSync.lastError = String(err || "");
+    // 表示中の画面を更新（同期バッジを更新したい）
+    render();
+  }
+
+  function normalizeState(raw) {
+    const base = {
+      version: 1,
+      members: Array.isArray(raw?.members) ? raw.members : [],
+      exclusions: Array.isArray(raw?.exclusions) ? raw.exclusions : [],
+      runs: Array.isArray(raw?.runs) ? raw.runs : [],
+    };
+    // メンバーのemailが無い古いデータを吸収
+    for (const m of base.members) {
+      if (m && typeof m === "object" && !("email" in m)) m.email = "";
+      if (m && typeof m === "object" && typeof m.email !== "string") m.email = String(m.email || "");
+    }
+    return base;
+  }
+
+  async function syncFromServer({ force = false } = {}) {
+    if (!force && remoteSync.status === "loading") return;
+    setRemoteStatus("loading");
+    try {
+      const res = await fetchServerState();
+      const serverState = res?.state ?? null;
+      const updatedAt = res?.updatedAt ?? null;
+
+      if (!serverState) {
+        // サーバーが未初期化なら、ローカルの状態で初期化する（初回のみ）
+        const next = normalizeState(state);
+        const saved = await saveServerState({ state: next, expectedUpdatedAt: null });
+        remoteSync.updatedAt = saved?.updatedAt ?? null;
+        setRemoteStatus("ok");
+        return;
+      }
+
+      const next = normalizeState(serverState);
+      // 既存の修正（親/メール）を適用しつつ反映
+      ensureDefaultParents(next);
+      ensureDefaultEmails(next);
+
+      state = next;
+      writeState(state);
+      remoteSync.updatedAt = updatedAt;
+      setRemoteStatus("ok");
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (msg.includes("unauthorized")) setRemoteStatus("unauth", msg);
+      else if (msg.includes("db_not_configured")) setRemoteStatus("db_off", msg);
+      else setRemoteStatus("error", msg);
+    }
+  }
+
+  function scheduleSaveToServer() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveToServer({ force: false }), 900);
+  }
+
+  async function saveToServer({ force }) {
+    if (remoteSync.saving) return;
+    remoteSync.saving = true;
+    try {
+      const expectedUpdatedAt = force ? null : remoteSync.updatedAt;
+      const res = await saveServerState({ state: normalizeState(state), expectedUpdatedAt });
+      remoteSync.updatedAt = res?.updatedAt ?? remoteSync.updatedAt;
+      setRemoteStatus("ok");
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (msg.startsWith("conflict")) {
+        setRemoteStatus("conflict", msg);
+        // 競合時は勝手に上書きせず、ユーザー操作に委ねる
+        alert("別のユーザーが先に更新した可能性があります（競合）。ダッシュボードの「同期」から再読込/強制上書きを選んでください。");
+      } else if (msg.includes("unauthorized")) {
+        setRemoteStatus("unauth", msg);
+      } else if (msg.includes("db_not_configured")) {
+        setRemoteStatus("db_off", msg);
+      } else {
+        setRemoteStatus("error", msg);
+      }
+    } finally {
+      remoteSync.saving = false;
+    }
+  }
+
   function setState(updater) {
     const next = typeof updater === "function" ? updater(structuredClone(state)) : updater;
     state = next;
     writeState(state);
+    if (suppressRemoteSaveOnce) suppressRemoteSaveOnce = false;
+    else scheduleSaveToServer();
     render();
   }
 
@@ -848,6 +973,37 @@
       ]),
     ]);
 
+    const syncCard = (() => {
+      const statusMap = {
+        idle: { label: "未同期", cls: "badge" },
+        loading: { label: "同期中", cls: "badge" },
+        ok: { label: "同期OK", cls: "badge badge--ok" },
+        conflict: { label: "競合", cls: "badge badge--danger" },
+        db_off: { label: "DB未設定", cls: "badge badge--danger" },
+        unauth: { label: "未ログイン", cls: "badge badge--danger" },
+        error: { label: "エラー", cls: "badge badge--danger" },
+      };
+      const st = statusMap[remoteSync.status] || statusMap.error;
+      const badge = el("span", { class: st.cls, text: st.label });
+      const detail =
+        remoteSync.status === "ok" && remoteSync.updatedAt
+          ? el("div", { class: "muted", text: `サーバー更新: ${String(remoteSync.updatedAt).replace("T", " ").slice(0, 19)}` })
+          : remoteSync.lastError
+            ? el("div", { class: "muted", text: `詳細: ${remoteSync.lastError}` })
+            : el("div", { class: "muted", text: "状態をサーバー（DB）に保存して共有できます。" });
+
+      const canSync = remoteSync.status !== "db_off";
+      const reloadBtn = el("button", { class: "btn", type: "button", text: "サーバー再読込", onclick: () => syncFromServer({ force: true }) });
+      const pushBtn = el("button", { class: "btn btn--primary", type: "button", text: "強制上書き", onclick: () => saveToServer({ force: true }) });
+
+      return el("div", { class: "card" }, [
+        el("div", { class: "card__title" }, [el("span", { text: "同期（DB）" }), badge]),
+        detail,
+        el("div", { class: "hr" }),
+        el("div", { class: "row" }, [canSync ? reloadBtn : null, canSync ? pushBtn : null].filter(Boolean)),
+      ]);
+    })();
+
     const calendarTest = (() => {
       const members = [...state.members].sort(byName);
       const options = [
@@ -1534,4 +1690,5 @@
 
   window.addEventListener("hashchange", render);
   render();
+  syncFromServer();
 })();
