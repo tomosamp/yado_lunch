@@ -20,19 +20,24 @@ export function getDbPool(): Pool {
   if (globalThis.__yadoLunchPgPool) return globalThis.__yadoLunchPgPool;
 
   const connectionString = getConnectionString();
-  let ssl: false | { rejectUnauthorized: boolean } = false;
+  // Supabase/NeonなどのManaged PostgresはSSL必須が多い。
+  // Vercel環境で `SELF_SIGNED_CERT_IN_CHAIN` が出るケースがあるため、
+  // 基本はSSL接続しつつ、証明書検証は緩める（社内ツール想定）。
+  // より厳密にする場合は、環境変数で `PGSSLMODE=disable` を指定して無効化するか、
+  // CAを用意して rejectUnauthorized=true へ移行してください。
+  let ssl: false | { rejectUnauthorized: boolean } = process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false;
+  const pgsslmode = (process.env.PGSSLMODE || "").toLowerCase();
+  if (pgsslmode === "disable") ssl = false;
   try {
     const u = new URL(connectionString);
     const host = u.hostname.toLowerCase();
     const sslmode = (u.searchParams.get("sslmode") || "").toLowerCase();
-    const pgsslmode = (process.env.PGSSLMODE || "").toLowerCase();
     const isLocal = host === "localhost" || host === "127.0.0.1";
-    const wantsSsl = sslmode === "require" || pgsslmode === "require" || host.endsWith(".supabase.co") || host.endsWith(".supabase.net");
-    if (!isLocal && (wantsSsl || process.env.NODE_ENV === "production")) {
-      ssl = { rejectUnauthorized: false };
-    }
+    if (isLocal) ssl = false;
+    if (sslmode === "disable") ssl = false;
+    if (sslmode === "require") ssl = { rejectUnauthorized: false };
   } catch {
-    // ignore (fallback: ssl=false)
+    // URL parse failure: keep defaults above
   }
   const pool = new Pool({
     connectionString,
