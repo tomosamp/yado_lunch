@@ -59,10 +59,12 @@ export async function GET(req: NextRequest) {
     const updatedAt = row.updated_at ? row.updated_at.toISOString() : null;
     return NextResponse.json({ ok: true, state, updatedAt });
   } catch (err) {
-    const code = String((err as Error)?.message || err);
-    if (code === "UNAUTHORIZED") return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-    if (code === "DB_NOT_CONFIGURED") return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
-    return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    const msg = String((err as Error)?.message || err);
+    const pgCode = typeof (err as { code?: unknown })?.code === "string" ? (err as { code?: string }).code : null;
+    if (msg === "UNAUTHORIZED") return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    if (msg === "DB_NOT_CONFIGURED") return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
+    if (pgCode) return NextResponse.json({ ok: false, error: "db_error", details: { code: pgCode, message: msg } }, { status: 502 });
+    return NextResponse.json({ ok: false, error: "internal_error", details: { message: msg } }, { status: 500 });
   }
 }
 
@@ -102,9 +104,11 @@ export async function PUT(req: NextRequest) {
     const updatedAt = result.rows[0]?.updated_at ? result.rows[0].updated_at.toISOString() : null;
     return NextResponse.json({ ok: true, updatedAt });
   } catch (err) {
-    const code = String((err as Error)?.message || err);
-    if (code === "UNAUTHORIZED") return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-    if (code === "DB_NOT_CONFIGURED") return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
-    return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    const msg = String((err as Error)?.message || err);
+    const pgCode = typeof (err as { code?: unknown })?.code === "string" ? (err as { code?: string }).code : null;
+    if (msg === "UNAUTHORIZED") return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    if (msg === "DB_NOT_CONFIGURED") return NextResponse.json({ ok: false, error: "db_not_configured" }, { status: 503 });
+    if (pgCode) return NextResponse.json({ ok: false, error: "db_error", details: { code: pgCode, message: msg } }, { status: 502 });
+    return NextResponse.json({ ok: false, error: "internal_error", details: { message: msg } }, { status: 500 });
   }
 }
