@@ -1395,7 +1395,7 @@
       el("a", { class: "btn", href: "#/runs", text: "履歴へ" }),
       el("button", { class: "btn", text: "一括再生成", onclick: rerollAll }),
       el("button", { class: "btn btn--primary", text: "一括確定", onclick: confirmAll }),
-      el("button", { class: "btn", text: "Googleカレンダー登録", onclick: registerCalendar }),
+      el("button", { class: "btn", type: "button", text: "Googleカレンダー登録", onclick: (e) => (e.preventDefault(), registerCalendar()) }),
       el("button", { class: "btn btn--danger", text: "プラン削除", onclick: deletePlan }),
     ]);
 
