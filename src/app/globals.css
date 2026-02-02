@@ -27,6 +27,18 @@ body {
   color: var(--text);
 }
 
+.auth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth__card {
+  width: min(520px, 100%);
+}
+
 .container {
   width: min(900px, calc(100% - 32px));
   margin: 0 auto;
@@ -65,4 +77,3 @@ body {
 .btn:hover {
   background: rgba(255, 255, 255, 0.95);
 }
-
