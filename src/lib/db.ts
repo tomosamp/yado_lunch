@@ -21,11 +21,9 @@ export function getDbPool(): Pool {
 
   const connectionString = getConnectionString();
   // Supabase/NeonなどのManaged PostgresはSSL必須が多い。
-  // Vercel環境で `SELF_SIGNED_CERT_IN_CHAIN` が出るケースがあるため、
-  // 基本はSSL接続しつつ、証明書検証は緩める（社内ツール想定）。
-  // より厳密にする場合は、環境変数で `PGSSLMODE=disable` を指定して無効化するか、
-  // CAを用意して rejectUnauthorized=true へ移行してください。
-  let ssl: false | { rejectUnauthorized: boolean } = process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false;
+  // `SELF_SIGNED_CERT_IN_CHAIN` が出るケースがあるため、基本はSSL接続しつつ証明書検証は緩める。
+  // 無効化したい場合は `PGSSLMODE=disable` または `?sslmode=disable` を使う。
+  let ssl: false | { rejectUnauthorized: boolean } = { rejectUnauthorized: false };
   const pgsslmode = (process.env.PGSSLMODE || "").toLowerCase();
   if (pgsslmode === "disable") ssl = false;
   try {
@@ -39,6 +37,14 @@ export function getDbPool(): Pool {
   } catch {
     // URL parse failure: keep defaults above
   }
+
+  // Vercel上で `SELF_SIGNED_CERT_IN_CHAIN` が出る場合の最終回避策。
+  // rejectUnauthorized=false にしてもTLS層で弾かれる環境があるため、Node全体の検証もOFFにする。
+  // （社内ツール想定。厳密にするならCAを用意して検証ONへ移行してください）
+  if (ssl && typeof ssl === "object" && ssl.rejectUnauthorized === false) {
+    if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED) process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  }
+
   const pool = new Pool({
     connectionString,
     ssl,
