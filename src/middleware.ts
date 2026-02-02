@@ -14,7 +14,12 @@ const authMiddleware = withAuth({
 export default function middleware(req: NextRequest, ev: NextFetchEvent) {
   // たまに別ドメイン（Deployment URL等）でアクセスされると、OAuthのredirect_uriが揺れて mismatch になり得るため、
   // NEXTAUTH_URL のホストへ寄せる（canonical化）。
-  const canonical = process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).host : "";
+  let canonical = "";
+  try {
+    canonical = process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).host : "";
+  } catch {
+    canonical = "";
+  }
   if (canonical && req.nextUrl.host && req.nextUrl.host !== canonical) {
     const url = req.nextUrl.clone();
     url.host = canonical;
