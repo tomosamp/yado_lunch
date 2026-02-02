@@ -1,28 +1,14 @@
-"use client";
+import SignOutClient from "./SignOutClient";
 
-import { signOut } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo } from "react";
+function normalizeCallbackUrl(raw: unknown): string {
+  if (typeof raw !== "string") return "/login";
+  // open redirect 防止: 相対パスのみ許可
+  return raw.startsWith("/") ? raw : "/login";
+}
 
-export default function LogoutPage() {
-  const searchParams = useSearchParams();
-
-  const callbackUrl = useMemo(() => {
-    const raw = searchParams?.get("callbackUrl") ?? "/login";
-    return raw.startsWith("/") ? raw : "/login";
-  }, [searchParams]);
-
-  useEffect(() => {
-    signOut({ callbackUrl });
-  }, [callbackUrl]);
-
-  return (
-    <main className="auth">
-      <section className="card auth__card">
-        <h1 className="title">ログアウト中…</h1>
-        <p className="muted">少々お待ちください。</p>
-      </section>
-    </main>
-  );
+export default function LogoutPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
+  const callbackRaw = searchParams?.callbackUrl;
+  const callbackUrl = normalizeCallbackUrl(Array.isArray(callbackRaw) ? callbackRaw[0] : callbackRaw);
+  return <SignOutClient callbackUrl={callbackUrl} />;
 }
 
