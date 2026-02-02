@@ -201,6 +201,11 @@ body {
   align-items: center;
 }
 
+/* フォーム内のアクション行（保存/生成など）が上要素にくっつかないように */
+form.card > .row {
+  margin-top: 10px;
+}
+
 .row .grow {
   flex: 1 1 auto;
 }
@@ -558,4 +563,3 @@ input[type="checkbox"] {
     height: 32px;
   }
 }
-
