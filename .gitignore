@@ -1,6 +1,7 @@
 .DS_Store
 .env.local
 .env.*.local
+docs/
 node_modules/
 .next/
 .vercel/
