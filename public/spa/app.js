@@ -1179,8 +1179,9 @@
       const isParent = !!form.querySelector('[name="isParent"]').checked;
       const isActive = !!form.querySelector('[name="isActive"]').checked;
       const isTerminated = !!form.querySelector('[name="isTerminated"]').checked;
-      if (!name) return alert("氏名を入力してください。");
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert("メール形式が不正です。");
+      if (!name) return showFlash("氏名を入力してください。", "error");
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showFlash("メール形式が不正です。", "error");
+      const isUpdate = !!editingId;
       setState((draft) => {
         const ts = nowIso();
         if (!editingId) {
@@ -1198,6 +1199,7 @@
         }
         return draft;
       });
+      showFlash(isUpdate ? "社員情報を更新しました。" : "社員を追加しました。");
     });
 
     const filters = el("div", { class: "card" }, [
@@ -1260,28 +1262,39 @@
       const toggleBtn = el("button", {
         class: "btn btn--ghost",
         text: m.isActive ? "無効化" : "有効化",
-        onclick: () =>
+        onclick: () => {
+          const target = `${m.name}`;
+          const willBeActive = !m.isActive;
           setState((draft) => {
             const x = draft.members.find((mm) => mm.id === m.id);
             if (x) {
-              x.isActive = !x.isActive;
+              x.isActive = willBeActive;
               x.updatedAt = nowIso();
             }
             return draft;
-          }),
+          });
+          showFlash(willBeActive ? `${target}をランチ会対象に戻しました。` : `${target}をランチ会対象外にしました。`);
+        },
       });
       const terminateBtn = el("button", {
         class: "btn btn--ghost",
         text: m.isTerminated ? "退職扱い解除" : "退職扱い",
-        onclick: () =>
+        onclick: () => {
+          const target = `${m.name}`;
+          const willBeTerminated = !m.isTerminated;
           setState((draft) => {
             const x = draft.members.find((mm) => mm.id === m.id);
             if (x) {
-              x.isTerminated = !x.isTerminated;
+              x.isTerminated = willBeTerminated;
               x.updatedAt = nowIso();
             }
             return draft;
-          }),
+          });
+          showFlash(
+            willBeTerminated ? `${target}を退職扱いにしました。` : `${target}の退職扱いを解除しました。`,
+            willBeTerminated ? "warn" : "ok"
+          );
+        },
       });
       tbody.appendChild(
         el("tr", {}, [
@@ -1306,12 +1319,13 @@
           type: "button",
           text: "初期社員を追加",
           onclick: () => {
-            if (!confirm("初期社員リストを追加しますか？")) return;
+          if (!confirm("初期社員リストを追加しますか？")) return;
             setState((draft) => {
               addMembersByNames(draft, DEFAULT_MEMBER_NAMES, DEFAULT_PARENT_NAMES);
               ensureDefaultParents(draft);
               return draft;
             });
+            showFlash("初期社員リストを追加しました。");
           },
         }),
       ]),
@@ -1343,15 +1357,16 @@
       const a = form.querySelector('[name="a"]').value;
       const b = form.querySelector('[name="b"]').value;
       const note = String(form.querySelector('[name="note"]').value || "").trim();
-      if (!a || !b) return alert("社員A/Bを選択してください。");
-      if (a === b) return alert("同一人物は指定できません。");
+      if (!a || !b) return showFlash("社員A/Bを選択してください。", "error");
+      if (a === b) return showFlash("同一人物は指定できません。", "error");
       const [na, nb] = normalizePair(a, b);
       const exists = state.exclusions.some((p) => pairKey(p.memberAId, p.memberBId) === pairKey(na, nb));
-      if (exists) return alert("同じペアの同席NGが既に登録されています。");
+      if (exists) return showFlash("同じペアの同席NGが既に登録されています。", "error");
       setState((draft) => {
         draft.exclusions.push({ id: uuid(), memberAId: na, memberBId: nb, note, createdAt: nowIso() });
         return draft;
       });
+      showFlash("同席NGを追加しました。");
     });
 
     const table = el("table", { class: "table" });
@@ -1379,6 +1394,7 @@
                   draft.exclusions = draft.exclusions.filter((x) => x.id !== p.id);
                   return draft;
                 });
+                showFlash("同席NGを削除しました。");
               },
             }),
           ]),
