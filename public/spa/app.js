@@ -1043,8 +1043,24 @@
             : el("div", { class: "muted", text: "状態をサーバー（DB）に保存して共有できます。" });
 
       const canSync = remoteSync.status !== "db_off";
-      const reloadBtn = el("button", { class: "btn", type: "button", text: "サーバー再読込", onclick: () => syncFromServer({ force: true }) });
-      const pushBtn = el("button", { class: "btn btn--primary", type: "button", text: "強制上書き", onclick: () => saveToServer({ force: true }) });
+      const reloadBtn = el("button", {
+        class: "btn",
+        type: "button",
+        text: "サーバー再読込",
+        onclick: async () => {
+          await syncFromServer({ force: true });
+          if (remoteSync.status === "ok") showFlash("サーバーを再読込しました。");
+        },
+      });
+      const pushBtn = el("button", {
+        class: "btn btn--primary",
+        type: "button",
+        text: "強制上書き",
+        onclick: async () => {
+          await saveToServer({ force: true });
+          if (remoteSync.status === "ok") showFlash("サーバーに保存しました。");
+        },
+      });
 
       return el("div", { class: "card" }, [
         el("div", { class: "card__title" }, [el("span", { text: "同期（DB）" }), badge]),
@@ -1072,18 +1088,18 @@
         onclick: async (e) => {
           e.preventDefault();
           const memberId = String(select.value || "").trim();
-          if (!memberId) return alert("招待する社員を選択してください。");
+          if (!memberId) return showFlash("招待する社員を選択してください。", "error");
           const m = state.members.find((x) => x.id === memberId) || null;
           const other = String(m?.email || "").trim();
-          if (!other) return alert(`${m?.name || "選択した社員"}のメールが未登録です。社員画面でメールを登録してください。`);
-          if (!isValidEmail(other)) return alert(`${m?.name || "選択した社員"}のメール形式が不正です。社員画面で修正してください。`);
+          if (!other) return showFlash(`${m?.name || "選択した社員"}のメールが未登録です。社員画面でメールを登録してください。`, "error");
+          if (!isValidEmail(other)) return showFlash(`${m?.name || "選択した社員"}のメール形式が不正です。社員画面で修正してください。`, "error");
           if (!confirm(`Googleカレンダーにテスト予定を作成します。\n\n予定名: ランチ会（自動作成テスト）\n招待先: ${other}\n通知: sendUpdates=all`)) return;
           try {
             const res = await createCalendarTestEvent(other);
             const link = res?.htmlLink ? `\n\n${res.htmlLink}` : "";
-            alert(`作成しました（${res?.date || ""}）。${link}`);
+            showFlash(`作成しました（${res?.date || ""}）。${link}`);
           } catch (err) {
-            alert(String(err?.message || err));
+            showFlash(String(err?.message || err), "error");
           }
         },
       });
@@ -1685,10 +1701,10 @@
       if (missing.length > 0) {
         const list = missing.slice(0, 12).join("\n");
         const more = missing.length > 12 ? `\n...他${missing.length - 12}件` : "";
-        alert(`メール未登録/形式不正の社員があります。社員画面でメールを登録してから再実行してください。\n\n${list}${more}`);
+        showFlash(`メール未登録/形式不正の社員があります。社員画面でメールを登録してから再実行してください。\n\n${list}${more}`, "error");
         return;
       }
-      if (events.length === 0) return alert("作成対象のイベントが0件です。");
+      if (events.length === 0) return showFlash("作成対象のイベントが0件です。", "error");
 
       try {
         const res = await createCalendarEvents(events);
@@ -1696,9 +1712,9 @@
         const ngCount = (res?.results || []).length - okCount;
         const firstLink = (res?.results || []).find((x) => x.ok && x.htmlLink)?.htmlLink || "";
         const linkMsg = firstLink ? `\n\n例: ${firstLink}` : "";
-        alert(`カレンダー登録しました。成功: ${okCount} / 失敗: ${ngCount}${linkMsg}`);
+        showFlash(`カレンダー登録しました。成功: ${okCount} / 失敗: ${ngCount}${linkMsg}`);
       } catch (err) {
-        alert(String(err?.message || err));
+        showFlash(String(err?.message || err), "error");
       }
     }
 
