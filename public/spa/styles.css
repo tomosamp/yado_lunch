@@ -173,6 +173,17 @@ body {
   line-height: 1.4;
 }
 
+.flash-wrap {
+  position: fixed;
+  top: 90px;
+  right: 12px;
+  left: 12px;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+  z-index: 1200;
+}
+
 .flash--ok {
   border-color: rgba(16, 185, 129, 0.35);
   background: rgba(16, 185, 129, 0.12);

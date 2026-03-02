@@ -281,10 +281,16 @@
     }, 3000);
   }
 
+  function honorificName(name) {
+    const n = String(name || "").trim();
+    if (!n) return "";
+    return n.endsWith("さん") ? n : `${n}さん`;
+  }
+
   function renderFlash() {
     if (!flashMessage) return null;
     const cls = flashMessage.type === "error" ? "flash flash--error" : flashMessage.type === "warn" ? "flash flash--warn" : "flash flash--ok";
-    return el("div", { class: cls }, [el("span", { text: flashMessage.message })]);
+    return el("div", { class: "flash-wrap" }, [el("div", { class: cls }, [el("span", { text: flashMessage.message })])]);
   }
 
   function setState(updater) {
