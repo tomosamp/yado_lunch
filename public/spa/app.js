@@ -1441,6 +1441,12 @@
       const historyWindow = clampInt(form.querySelector('[name="historyWindow"]').value, 0, 12, 3);
       const actorNote = String(form.querySelector('[name="actorNote"]').value || "").trim();
       if (!month) return showFlash("対象月を入力してください。", "error");
+      const hasExistingMonthlyPlan = state.runs.some((r) => {
+        if (!r.batchId) return false;
+        const batchMonth = String(r.batchMonth || "");
+        return batchMonth === month || String(r.runDate || "").startsWith(month);
+      });
+      if (hasExistingMonthlyPlan) return showFlash("選択した月には既存の月次プラン（ドラフト/確定）があります。削除してから再作成してください。", "error");
       try {
         const seed = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
         const plan = generateMonthlyPlan({ month, historyWindow, seed, startWeek });
