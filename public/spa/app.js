@@ -1118,6 +1118,7 @@
           el("div", { class: "row" }, [
             el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isParent" }), el("span", { text: "親（責任者）" })]),
             el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isActive", checked: true }), el("span", { text: "有効" })]),
+            el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isTerminated" }), el("span", { text: "退職扱い" })]),
           ]),
         ]),
       ]),
@@ -1133,18 +1134,20 @@
       const email = String(form.querySelector('[name="email"]').value || "").trim();
       const isParent = !!form.querySelector('[name="isParent"]').checked;
       const isActive = !!form.querySelector('[name="isActive"]').checked;
+      const isTerminated = !!form.querySelector('[name="isTerminated"]').checked;
       if (!name) return alert("氏名を入力してください。");
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert("メール形式が不正です。");
       setState((draft) => {
         const ts = nowIso();
         if (!editingId) {
-          draft.members.push({ id: uuid(), name, email, isActive, isParent, createdAt: ts, updatedAt: ts });
+          draft.members.push({ id: uuid(), name, email, isActive, isTerminated, isParent, createdAt: ts, updatedAt: ts });
         } else {
           const m = draft.members.find((x) => x.id === editingId);
           if (m) {
             m.name = name;
             m.email = email;
             m.isActive = isActive;
+            m.isTerminated = isTerminated;
             m.isParent = isParent;
             m.updatedAt = ts;
           }
@@ -1205,6 +1208,7 @@
           form.querySelector('[name="email"]').value = m.email || "";
           form.querySelector('[name="isParent"]').checked = !!m.isParent;
           form.querySelector('[name="isActive"]').checked = !!m.isActive;
+          form.querySelector('[name="isTerminated"]').checked = !!m.isTerminated;
           form.querySelector("#edit-badge").textContent = "編集中";
           window.scrollTo({ top: 0, behavior: "smooth" });
         },
@@ -1222,13 +1226,27 @@
             return draft;
           }),
       });
+      const terminateBtn = el("button", {
+        class: "btn btn--ghost",
+        text: m.isTerminated ? "退職扱い解除" : "退職扱い",
+        onclick: () =>
+          setState((draft) => {
+            const x = draft.members.find((mm) => mm.id === m.id);
+            if (x) {
+              x.isTerminated = !x.isTerminated;
+              x.updatedAt = nowIso();
+            }
+            return draft;
+          }),
+      });
       tbody.appendChild(
         el("tr", {}, [
           el("td", { text: m.name }),
           el("td", {}, [m.email ? el("span", { class: "mono", text: m.email }) : el("span", { class: "muted", text: "-" })]),
           el("td", {}, [m.isActive ? el("span", { class: "badge badge--ok", text: "有効" }) : el("span", { class: "badge", text: "無効" })]),
+          el("td", {}, [m.isTerminated ? el("span", { class: "badge", text: "退職済み" }) : el("span", { class: "muted", text: "-" })]),
           el("td", {}, [m.isParent ? el("span", { class: "badge", text: "親" }) : el("span", { class: "muted", text: "-" })]),
-          el("td", {}, [el("div", { class: "row" }, [editBtn, toggleBtn])]),
+          el("td", {}, [el("div", { class: "row" }, [editBtn, toggleBtn, terminateBtn])]),
         ])
       );
     }
