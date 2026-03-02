@@ -1133,15 +1133,50 @@
 
   function renderMembers() {
     let editingId = null;
-    const q = String(membersSearchQuery || "").trim().toLowerCase();
-    const membersSorted = state.members
-      .filter((m) => (m.isTerminated ? membersShowTerminated : membersShowInactive || m.isActive))
-      .filter((m) => {
-        if (!q) return true;
-        const target = `${String(m.name || "").toLowerCase()} ${String(m.email || "").toLowerCase()}`;
-        return target.includes(q);
-      })
-      .sort(byName);
+    const table = el("table", { class: "table" });
+    const tbody = el("tbody");
+
+    function buildFilteredMembers() {
+      const q = String(membersSearchQuery || "").trim().toLowerCase();
+      return state.members
+        .filter((m) => (m.isTerminated ? membersShowTerminated : membersShowInactive || m.isActive))
+        .filter((m) => {
+          if (!q) return true;
+          const target = `${String(m.name || "").toLowerCase()} ${String(m.email || "").toLowerCase()}`;
+          return target.includes(q);
+        })
+        .sort(byName);
+    }
+
+    function renderMembersRows() {
+      const membersSorted = buildFilteredMembers();
+      const nextBody = el("tbody");
+      for (const m of membersSorted) {
+        const onEdit = () => {
+          editingId = m.id;
+          form.querySelector('[name="name"]').value = m.name;
+          form.querySelector('[name="email"]').value = m.email || "";
+          form.querySelector('[name="isParent"]').checked = !!m.isParent;
+          form.querySelector('[name="isActive"]').checked = !!m.isActive;
+          form.querySelector('[name="isTerminated"]').checked = !!m.isTerminated;
+          form.querySelector("#edit-badge").textContent = "編集中";
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        };
+        const editButton = el("button", { class: "btn", text: "編集", onclick: onEdit });
+
+        nextBody.appendChild(
+          el("tr", {}, [
+            el("td", { text: m.name }),
+            el("td", {}, [m.email ? el("span", { class: "mono", text: m.email }) : el("span", { class: "muted", text: "-" })]),
+            el("td", {}, [m.isActive ? el("span", { class: "badge badge--ok", text: "有効" }) : el("span", { class: "badge", text: "無効" })]),
+            el("td", {}, [m.isTerminated ? el("span", { class: "badge", text: "非表示" }) : el("span", { class: "muted", text: "-" })]),
+            el("td", {}, [m.isParent ? el("span", { class: "badge", text: "親" }) : el("span", { class: "muted", text: "-" })]),
+            el("td", {}, [editButton]),
+          ])
+        );
+      }
+      tbody.replaceChildren(...nextBody.childNodes);
+    }
 
     function resetForm(form) {
       editingId = null;
@@ -1155,11 +1190,11 @@
 
     const form = el("form", { class: "card" }, [
       el("div", { class: "card__title" }, [el("span", { text: "社員の追加 / 編集" }), el("span", { class: "badge", id: "edit-badge", text: "新規" })]),
-      el("div", { class: "row" }, [
-        el("label", {}, [el("span", { text: "社員検索" }), el("input", { name: "memberSearch", placeholder: "氏名・メールで検索", value: membersSearchQuery, oninput: (ev) => {
+      el("div", { class: "grid" }, [
+        el("div", { class: "col-6" }, [el("label", {}, [el("span", { text: "社員検索" }), el("input", { name: "memberSearch", placeholder: "氏名・メールで検索", value: membersSearchQuery, oninput: (ev) => {
           membersSearchQuery = String(ev.currentTarget.value || "");
-          render();
-        } })]),
+          renderMembersRows();
+        } })])]),
       ]),
       el("div", { class: "grid" }, [
         el("div", { class: "col-6" }, [el("label", {}, [el("span", { text: "氏名" }), el("input", { name: "name", placeholder: "例: 松澤", autocomplete: "off" })])]),
