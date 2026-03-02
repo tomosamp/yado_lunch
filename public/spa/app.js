@@ -525,7 +525,7 @@
     return out;
   }
 
-  function generateMonthlyPlan({ month, historyWindow, seed }) {
+  function generateMonthlyPlan({ month, historyWindow, seed, startWeek }) {
     const active = activeMembers();
     const parents = activeParents().sort(byName);
     if (parents.length === 0) throw new Error("親（責任者）が0人です。社員画面で親フラグをONにしてください。");
@@ -543,11 +543,18 @@
     }
 
     const sessionsNeeded = Math.max(1, Math.ceil(np / slotsPerSession));
-    if (sessionsNeeded > allMondays.length) {
-      throw new Error(`この月の月曜回数（${allMondays.length}回）では全員を割り当てられません。親を増やすか、別の月で生成してください。`);
+    const selectedWeek = Number.parseInt(String(startWeek ?? 1), 10);
+    if (!Number.isFinite(selectedWeek) || selectedWeek < 1 || selectedWeek > allMondays.length) {
+      throw new Error(`開始週は1〜${allMondays.length}の間で指定してください。`);
     }
 
-    const dates = allMondays.slice(0, sessionsNeeded);
+    const startDateParts = allMondays[selectedWeek - 1].split("-");
+    const firstRunDate = new Date(Number(startDateParts[0]), Number(startDateParts[1]) - 1, Number(startDateParts[2]));
+    const dates = [];
+    for (let i = 0; i < sessionsNeeded; i++) {
+      dates.push(toYmd(firstRunDate));
+      firstRunDate.setDate(firstRunDate.getDate() + 7);
+    }
     const exclusionSet = buildExclusionSet();
     const historyWeights = buildHistoryPairWeights(historyWindow);
 
@@ -653,7 +660,13 @@
       }
       const duplicated = [...occurrences.entries()].filter(([, c]) => c > 1).map(([id, c]) => ({ id, c }));
 
-      return { month, dates, sessions, stats: { duplicated, totalNonParents: np, sessionsNeeded } };
+      return {
+        month,
+        dates,
+        sessions,
+        startWeek: selectedWeek,
+        stats: { duplicated, totalNonParents: np, sessionsNeeded },
+      };
     }
 
     throw new Error("月次生成に失敗しました。同席NGが多い可能性があります。");
