@@ -161,6 +161,9 @@
   }
 
   let state = readState();
+  let membersShowInactive = true;
+  let membersShowTerminated = false;
+  let membersSearchQuery = "";
 
   const remoteSync = {
     status: "idle", // idle | loading | ok | conflict | db_off | unauth | error
@@ -1080,8 +1083,15 @@
 
   function renderMembers() {
     let editingId = null;
-    // 要望: 無効化した社員は一覧から非表示（復活はDB側で対応する想定）
-    const membersSorted = state.members.filter((m) => m.isActive).sort(byName);
+    const q = String(membersSearchQuery || "").trim().toLowerCase();
+    const membersSorted = state.members
+      .filter((m) => (m.isTerminated ? membersShowTerminated : membersShowInactive || m.isActive))
+      .filter((m) => {
+        if (!q) return true;
+        const target = `${String(m.name || "").toLowerCase()} ${String(m.email || "").toLowerCase()}`;
+        return target.includes(q);
+      })
+      .sort(byName);
 
     function resetForm(form) {
       editingId = null;
@@ -1089,11 +1099,18 @@
       form.querySelector('[name="email"]').value = "";
       form.querySelector('[name="isParent"]').checked = false;
       form.querySelector('[name="isActive"]').checked = true;
+      form.querySelector('[name="isTerminated"]').checked = false;
       form.querySelector("#edit-badge").textContent = "新規";
     }
 
     const form = el("form", { class: "card" }, [
       el("div", { class: "card__title" }, [el("span", { text: "社員の追加 / 編集" }), el("span", { class: "badge", id: "edit-badge", text: "新規" })]),
+      el("div", { class: "row" }, [
+        el("label", {}, [el("span", { text: "社員検索" }), el("input", { name: "memberSearch", placeholder: "氏名・メールで検索", value: membersSearchQuery, oninput: (ev) => {
+          membersSearchQuery = String(ev.currentTarget.value || "");
+          render();
+        } })]),
+      ]),
       el("div", { class: "grid" }, [
         el("div", { class: "col-6" }, [el("label", {}, [el("span", { text: "氏名" }), el("input", { name: "name", placeholder: "例: 松澤", autocomplete: "off" })])]),
         el("div", { class: "col-6" }, [el("label", {}, [el("span", { text: "メール（招待用）" }), el("input", { name: "email", placeholder: "例: foo@yadokari.tv", autocomplete: "off" })])]),
@@ -1136,10 +1153,45 @@
       });
     });
 
+    const filters = el("div", { class: "card" }, [
+      el("div", { class: "card__title", text: "表示フィルタ" }),
+      el("div", { class: "row" }, [
+        el("label", { class: "pill" }, [
+          el("input", {
+            type: "checkbox",
+            checked: membersShowInactive,
+            onchange: (ev) => {
+              membersShowInactive = !!ev.currentTarget.checked;
+              render();
+            },
+          }),
+          el("span", { text: "有効OFFを表示" }),
+        ]),
+        el("label", { class: "pill" }, [
+          el("input", {
+            type: "checkbox",
+            checked: membersShowTerminated,
+            onchange: (ev) => {
+              membersShowTerminated = !!ev.currentTarget.checked;
+              render();
+            },
+          }),
+          el("span", { text: "退職扱いを表示" }),
+        ]),
+      ]),
+    ]);
+
     const table = el("table", { class: "table" });
     table.appendChild(
       el("thead", {}, [
-        el("tr", {}, [el("th", { text: "氏名" }), el("th", { text: "メール" }), el("th", { text: "有効" }), el("th", { text: "親" }), el("th", { text: "操作" })]),
+        el("tr", {}, [
+          el("th", { text: "氏名" }),
+          el("th", { text: "メール" }),
+          el("th", { text: "ランチ会参加" }),
+          el("th", { text: "退職扱い" }),
+          el("th", { text: "親" }),
+          el("th", { text: "操作" }),
+        ]),
       ])
     );
     const tbody = el("tbody");
@@ -1203,7 +1255,11 @@
       ]),
     ]);
 
-    return mountPage("社員", null, el("div", { class: "grid" }, [el("div", { class: "col-12" }, form), el("div", { class: "col-8" }, table), el("div", { class: "col-4" }, hint)]));
+    return mountPage(
+      "社員",
+      null,
+      el("div", { class: "grid" }, [el("div", { class: "col-12" }, form), el("div", { class: "col-12" }, filters), el("div", { class: "col-8" }, table), el("div", { class: "col-4" }, hint)])
+    );
   }
 
   function renderExclusions() {
