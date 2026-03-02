@@ -240,6 +240,67 @@ body {
   justify-content: flex-start;
 }
 
+.history-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-accordion__item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.history-accordion__summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.history-accordion__summary::-webkit-details-marker,
+.history-accordion__summary::marker {
+  display: none;
+}
+
+.history-accordion__summary::after {
+  content: "▶";
+  font-size: 11px;
+  color: var(--muted);
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.history-accordion__item[open] .history-accordion__summary::after {
+  transform: rotate(90deg);
+}
+
+.history-accordion__month {
+  font-weight: 700;
+}
+
+.history-accordion__summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.history-accordion__content {
+  border-top: 1px solid var(--border);
+  padding: 12px;
+}
+
+.history-accordion__content .table-wrap {
+  margin: 0;
+}
+
 .card__title {
   font-size: 14px;
   font-weight: 750;
