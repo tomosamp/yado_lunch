@@ -1541,7 +1541,8 @@
       const events = [];
       for (let i = 0; i < runs.length; i++) {
         const run = runs[i];
-        const weekNo = i + 1;
+        const startWeek = clampInt(run.startWeek ?? 1, 1, 53, 1);
+        const weekNo = i + startWeek;
         const date = String(run.runDate || "").trim();
         for (const g of run.groups || []) {
           const ids = (g.members || []).map((m) => m.memberId);
@@ -1560,9 +1561,10 @@
           if (emails.length !== ids.length) continue;
 
           const parentName = findMember(g.parentMemberId)?.name || "(不明)";
+          const titleMembers = names.map((name) => (name.endsWith("さん") ? name : `${name}さん`)).join("、");
           events.push({
-            summary: `ランチ会（第${weekNo}週）`,
-            description: `対象月: ${formatMonthLabel(month)}\n実施日: ${date}（月）\n親: ${parentName}\n参加者: ${names.join(" / ")}\n`,
+            summary: `ランチ会：${titleMembers}`,
+            description: `対象月: ${formatMonthLabel(month)}\n実施日: ${date}（月）\n第${weekNo}週\n親: ${parentName}\n参加者: ${names.join(" / ")}\n`,
             start: { dateTime: `${date}T12:00:00+09:00`, timeZone: "Asia/Tokyo" },
             end: { dateTime: `${date}T13:00:00+09:00`, timeZone: "Asia/Tokyo" },
             attendees: emails.map((email) => ({ email })),
