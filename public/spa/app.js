@@ -911,7 +911,14 @@
     const latest = runsSortedDesc(state.runs)[0] || null;
 
     const right = el("div", { class: "row" }, [
-      el("button", { class: "btn btn--ghost", text: "エクスポート", onclick: () => downloadJson("lunch-grouping-export.json", state) }),
+      el("button", {
+        class: "btn btn--ghost",
+        text: "エクスポート",
+        onclick: () => {
+          downloadJson("lunch-grouping-export.json", state);
+          showFlash("エクスポートしました。");
+        },
+      }),
       el("label", { class: "btn btn--ghost" }, [
         el("span", { text: "インポート" }),
         el("input", {
@@ -931,9 +938,9 @@
                 exclusions: Array.isArray(imported.exclusions) ? imported.exclusions : [],
                 runs: Array.isArray(imported.runs) ? imported.runs : [],
               });
-              alert("インポートしました。");
+              showFlash("インポートしました。");
             } catch {
-              alert("JSONの読み込みに失敗しました。");
+              showFlash("JSONの読み込みに失敗しました。", "error");
             }
           },
         }),
@@ -944,6 +951,7 @@
         onclick: () => {
           if (!confirm("本当に全データを削除しますか？（取り消せません）")) return;
           setState(buildDefaultState());
+          showFlash("全データを初期化しました。");
         },
       }),
     ]);
