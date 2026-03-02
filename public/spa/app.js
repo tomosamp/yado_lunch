@@ -1300,12 +1300,35 @@
   function renderRunNew() {
     const active = activeMembers();
     const parents = activeParents();
-    const monthPicker = createMonthPicker({ name: "month", valueYm: currentYm(), placeholder: "月を選択", allowClear: false });
+    const startWeekSelect = el("select", { name: "startWeek", value: "1" });
+    const monthPicker = createMonthPicker({
+      name: "month",
+      valueYm: currentYm(),
+      placeholder: "月を選択",
+      allowClear: false,
+      onChange: (value) => setStartWeekOptions(value),
+    });
+
+    function setStartWeekOptions(ym) {
+      const mondays = mondaysInMonth(ym);
+      const maxWeek = Math.max(1, mondays.length);
+      const keep = Number.parseInt(String(startWeekSelect.value || "1"), 10);
+      startWeekSelect.replaceChildren();
+      for (let w = 1; w <= maxWeek; w++) {
+        const option = document.createElement("option");
+        option.value = String(w);
+        option.textContent = `${w}週目`;
+        startWeekSelect.appendChild(option);
+      }
+      if (Number.isFinite(keep) && keep >= 1 && keep <= maxWeek) startWeekSelect.value = String(keep);
+      else startWeekSelect.value = "1";
+    }
 
     const form = el("form", { class: "card" }, [
       el("div", { class: "card__title" }, [el("span", { text: "月次グループ生成（指定月の月曜）" }), el("span", { class: "badge", text: "ドラフト作成" })]),
       el("div", { class: "grid" }, [
         el("div", { class: "col-4" }, [el("label", {}, [el("span", { text: "対象月" }), monthPicker.root])]),
+        el("div", { class: "col-4" }, [el("label", {}, [el("span", { text: "開始週" }), startWeekSelect])]),
         el("div", { class: "col-4" }, [el("label", {}, [el("span", { text: "履歴参照（直近N回）" }), el("input", { type: "number", name: "historyWindow", min: "0", max: "12", value: "3" })])]),
         el("div", { class: "col-4" }, [el("label", {}, [el("span", { text: "実行者メモ（任意）" }), el("input", { name: "actorNote", placeholder: "例: 2026-02" })])]),
       ]),
@@ -1316,12 +1339,13 @@
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const month = monthPicker.getValue();
+      const startWeek = Number.parseInt(String(startWeekSelect.value || "1"), 10);
       const historyWindow = clampInt(form.querySelector('[name="historyWindow"]').value, 0, 12, 3);
       const actorNote = String(form.querySelector('[name="actorNote"]').value || "").trim();
       if (!month) return alert("対象月を入力してください。");
       try {
         const seed = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
-        const plan = generateMonthlyPlan({ month, historyWindow, seed });
+        const plan = generateMonthlyPlan({ month, historyWindow, seed, startWeek });
         const batchId = uuid();
         const createdAt = nowIso();
         const runs = plan.sessions.map((s) => ({
@@ -1332,6 +1356,7 @@
           status: "draft",
           historyWindow,
           actorNote: actorNote || month,
+          startWeek: plan.startWeek,
           seed,
           createdAt,
           confirmedAt: null,
@@ -1347,6 +1372,7 @@
         alert(String(err?.message || err));
       }
     });
+    setStartWeekOptions(monthPicker.getValue());
 
     const hint = el("div", { class: "card" }, [
       el("div", { class: "card__title", text: "ポイント" }),
@@ -1438,9 +1464,10 @@
       if (isAnyConfirmed) return alert("確定済みが含まれるため、一括再生成できません。");
       if (!confirm("この月次プランを一括で再生成しますか？")) return;
       const historyWindow = runs[0].historyWindow ?? 3;
+      const startWeek = runs[0].startWeek ?? 1;
       const seed = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
       try {
-        const plan = generateMonthlyPlan({ month, historyWindow, seed });
+        const plan = generateMonthlyPlan({ month, historyWindow, seed, startWeek });
         setState((draft) => {
           const targets = draft.runs
             .filter((r) => r.batchId === batchId)
@@ -1457,6 +1484,7 @@
                 runDate: s.runDate,
                 status: "draft",
                 historyWindow,
+                startWeek: plan.startWeek,
                 actorNote,
                 seed,
                 createdAt,
@@ -1471,6 +1499,7 @@
             const t = targets[i];
             const s = plan.sessions[i];
             t.seed = seed;
+            t.startWeek = plan.startWeek;
             t.groups = s.groups;
             t.stats = groupStats(s.groups);
             t.updatedAt = nowIso();
