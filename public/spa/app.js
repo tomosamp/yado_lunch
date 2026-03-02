@@ -1202,14 +1202,37 @@
         el("div", { class: "col-12" }, [
           el("div", { class: "row" }, [
             el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isParent" }), el("span", { text: "親（責任者）" })]),
-            el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isActive", checked: true }), el("span", { text: "有効" })]),
-            el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isTerminated" }), el("span", { text: "退職扱い" })]),
+            el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isActive", checked: true }), el("span", { text: "ランチ会参加有効フラグ" })]),
+            el("label", { class: "pill" }, [el("input", { type: "checkbox", name: "isTerminated" }), el("span", { text: "非表示" })]),
           ]),
         ]),
       ]),
-      el("div", { class: "row" }, [
-        el("button", { class: "btn btn--primary", type: "submit", text: "保存" }),
-        el("button", { class: "btn btn--ghost", type: "button", text: "編集解除", onclick: () => resetForm(form) }),
+      el("div", { class: "row", style: "justify-content: space-between; align-items: center;" }, [
+        el("div", { class: "row" }, [el("button", { class: "btn btn--primary", type: "submit", text: "保存" }), el("button", { class: "btn btn--ghost", type: "button", text: "編集解除", onclick: () => resetForm(form) })]),
+        el("div", { class: "row" }, [
+          el("label", { class: "pill" }, [
+            el("input", {
+              type: "checkbox",
+              checked: membersShowInactive,
+              onchange: (ev) => {
+                membersShowInactive = !!ev.currentTarget.checked;
+                renderMembersRows();
+              },
+            }),
+            el("span", { text: "ランチ会参加OFFを表示" }),
+          ]),
+          el("label", { class: "pill" }, [
+            el("input", {
+              type: "checkbox",
+              checked: membersShowTerminated,
+              onchange: (ev) => {
+                membersShowTerminated = !!ev.currentTarget.checked;
+                renderMembersRows();
+              },
+            }),
+            el("span", { text: "非表示を表示" }),
+          ]),
+        ]),
       ]),
     ]);
 
@@ -1243,139 +1266,25 @@
       showFlash(isUpdate ? "社員情報を更新しました。" : "社員を追加しました。");
     });
 
-    const filters = el("div", { class: "card" }, [
-      el("div", { class: "card__title", text: "表示フィルタ" }),
-      el("div", { class: "row" }, [
-        el("label", { class: "pill" }, [
-          el("input", {
-            type: "checkbox",
-            checked: membersShowInactive,
-            onchange: (ev) => {
-              membersShowInactive = !!ev.currentTarget.checked;
-              render();
-            },
-          }),
-          el("span", { text: "有効OFFを表示" }),
-        ]),
-        el("label", { class: "pill" }, [
-          el("input", {
-            type: "checkbox",
-            checked: membersShowTerminated,
-            onchange: (ev) => {
-              membersShowTerminated = !!ev.currentTarget.checked;
-              render();
-            },
-          }),
-          el("span", { text: "退職扱いを表示" }),
-        ]),
-      ]),
-    ]);
-
-    const table = el("table", { class: "table" });
     table.appendChild(
       el("thead", {}, [
         el("tr", {}, [
           el("th", { text: "氏名" }),
           el("th", { text: "メール" }),
           el("th", { text: "ランチ会参加" }),
-          el("th", { text: "退職扱い" }),
+          el("th", { text: "非表示" }),
           el("th", { text: "親" }),
           el("th", { text: "操作" }),
         ]),
       ])
     );
-    const tbody = el("tbody");
-    for (const m of membersSorted) {
-      const editBtn = el("button", {
-        class: "btn",
-        text: "編集",
-        onclick: () => {
-          editingId = m.id;
-          form.querySelector('[name="name"]').value = m.name;
-          form.querySelector('[name="email"]').value = m.email || "";
-          form.querySelector('[name="isParent"]').checked = !!m.isParent;
-          form.querySelector('[name="isActive"]').checked = !!m.isActive;
-          form.querySelector('[name="isTerminated"]').checked = !!m.isTerminated;
-          form.querySelector("#edit-badge").textContent = "編集中";
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        },
-      });
-      const toggleBtn = el("button", {
-        class: "btn btn--ghost",
-        text: m.isActive ? "無効化" : "有効化",
-        onclick: () => {
-          const target = `${m.name}`;
-          const willBeActive = !m.isActive;
-          setState((draft) => {
-            const x = draft.members.find((mm) => mm.id === m.id);
-            if (x) {
-              x.isActive = willBeActive;
-              x.updatedAt = nowIso();
-            }
-            return draft;
-          });
-          showFlash(willBeActive ? `${target}をランチ会対象に戻しました。` : `${target}をランチ会対象外にしました。`);
-        },
-      });
-      const terminateBtn = el("button", {
-        class: "btn btn--ghost",
-        text: m.isTerminated ? "退職扱い解除" : "退職扱い",
-        onclick: () => {
-          const target = `${m.name}`;
-          const willBeTerminated = !m.isTerminated;
-          setState((draft) => {
-            const x = draft.members.find((mm) => mm.id === m.id);
-            if (x) {
-              x.isTerminated = willBeTerminated;
-              x.updatedAt = nowIso();
-            }
-            return draft;
-          });
-          showFlash(
-            willBeTerminated ? `${target}を退職扱いにしました。` : `${target}の退職扱いを解除しました。`,
-            willBeTerminated ? "warn" : "ok"
-          );
-        },
-      });
-      tbody.appendChild(
-        el("tr", {}, [
-          el("td", { text: m.name }),
-          el("td", {}, [m.email ? el("span", { class: "mono", text: m.email }) : el("span", { class: "muted", text: "-" })]),
-          el("td", {}, [m.isActive ? el("span", { class: "badge badge--ok", text: "有効" }) : el("span", { class: "badge", text: "無効" })]),
-          el("td", {}, [m.isTerminated ? el("span", { class: "badge", text: "退職済み" }) : el("span", { class: "muted", text: "-" })]),
-          el("td", {}, [m.isParent ? el("span", { class: "badge", text: "親" }) : el("span", { class: "muted", text: "-" })]),
-          el("td", {}, [el("div", { class: "row" }, [editBtn, toggleBtn, terminateBtn])]),
-        ])
-      );
-    }
+    renderMembersRows();
     table.appendChild(tbody);
-
-    const hint = el("div", { class: "card" }, [
-      el("div", { class: "card__title", text: "一括投入" }),
-      el("div", { class: "muted", text: "初期社員リストを追加します（同名はスキップ。親4人は親フラグONにします）。" }),
-      el("div", { class: "hr" }),
-      el("div", { class: "row" }, [
-        el("button", {
-          class: "btn",
-          type: "button",
-          text: "初期社員を追加",
-          onclick: () => {
-          if (!confirm("初期社員リストを追加しますか？")) return;
-            setState((draft) => {
-              addMembersByNames(draft, DEFAULT_MEMBER_NAMES, DEFAULT_PARENT_NAMES);
-              ensureDefaultParents(draft);
-              return draft;
-            });
-            showFlash("初期社員リストを追加しました。");
-          },
-        }),
-      ]),
-    ]);
 
     return mountPage(
       "社員",
       null,
-      el("div", { class: "grid" }, [el("div", { class: "col-12" }, form), el("div", { class: "col-12" }, filters), el("div", { class: "col-8" }, table), el("div", { class: "col-4" }, hint)])
+      el("div", { class: "grid" }, [el("div", { class: "col-12" }, form), el("div", { class: "col-12" }, table)])
     );
   }
 
