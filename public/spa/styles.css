@@ -164,6 +164,30 @@ body {
   background: rgba(244, 63, 94, 0.08);
 }
 
+.flash {
+  margin: 6px 0 0;
+  border-radius: 12px;
+  border: 1px solid;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.flash--ok {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.flash--warn {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.flash--error {
+  border-color: rgba(244, 63, 94, 0.45);
+  background: rgba(244, 63, 94, 0.12);
+}
+
 .card__title {
   font-size: 14px;
   font-weight: 750;

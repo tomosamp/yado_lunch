@@ -163,6 +163,8 @@
   let state = readState();
   let membersShowInactive = true;
   let membersShowTerminated = false;
+  let flashMessage = null;
+  let flashTimer = null;
   let membersSearchQuery = "";
 
   const remoteSync = {
@@ -266,6 +268,24 @@
     } finally {
       remoteSync.saving = false;
     }
+  }
+
+  function showFlash(message, type = "ok") {
+    const msg = String(message || "").trim();
+    if (!msg) return;
+    if (flashTimer) clearTimeout(flashTimer);
+    flashMessage = { message: msg, type };
+    render();
+    flashTimer = setTimeout(() => {
+      flashMessage = null;
+      render();
+    }, 3000);
+  }
+
+  function renderFlash() {
+    if (!flashMessage) return null;
+    const cls = flashMessage.type === "error" ? "flash flash--error" : flashMessage.type === "warn" ? "flash flash--warn" : "flash flash--ok";
+    return el("div", { class: cls }, [el("span", { text: flashMessage.message })]);
   }
 
   function setState(updater) {
@@ -1813,7 +1833,8 @@
     else if (path === "/runs/:id") page = renderRunDetail(params.id);
     else page = renderNotFound();
 
-    appRoot.replaceChildren(page);
+    const flashNode = renderFlash();
+    appRoot.replaceChildren(...(flashNode ? [flashNode] : []), page);
   }
 
   window.addEventListener("hashchange", render);
