@@ -64,6 +64,14 @@
   function byName(a, b) {
     return a.name.localeCompare(b.name, "ja");
   }
+  function byCreatedAt(a, b) {
+    const av = String(a?.createdAt || "");
+    const bv = String(b?.createdAt || "");
+    if (av && bv && av !== bv) return av.localeCompare(bv);
+    if (av && !bv) return -1;
+    if (!av && bv) return 1;
+    return byName(a, b);
+  }
 
   function el(tag, attrs = {}, children = []) {
     const node = document.createElement(tag);
@@ -1145,7 +1153,7 @@
           const target = `${String(m.name || "").toLowerCase()} ${String(m.email || "").toLowerCase()}`;
           return target.includes(q);
         })
-        .sort(byName);
+        .sort(byCreatedAt);
     }
 
     function renderMembersRows() {
