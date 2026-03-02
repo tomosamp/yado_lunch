@@ -1504,38 +1504,67 @@
 
     const listArea = el("div", { class: "card" }, [el("div", { class: "card__title", text: "履歴" }), el("div", { class: "muted", text: "月で絞り込みできます。" })]);
 
+    function monthOfRun(run) {
+      return String(run.batchMonth || String(run.runDate || "").slice(0, 7));
+    }
+
     function renderList() {
       const runs = runsSortedDesc(state.runs).filter((r) => {
         if (!selectedMonth) return true;
         return String(r.runDate || "").startsWith(selectedMonth);
       });
-      const table = el("table", { class: "table" });
-      table.appendChild(
-        el("thead", {}, [
-          el("tr", {}, [el("th", { text: "実施日" }), el("th", { text: "状態" }), el("th", { text: "グループ数" }), el("th", { text: "履歴参照" }), el("th", { text: "操作" })]),
-        ])
-      );
-      const tbody = el("tbody");
-      for (const r of runs) {
-        const badge = r.status === "confirmed" ? el("span", { class: "badge badge--ok", text: "確定" }) : el("span", { class: "badge", text: "ドラフト" });
-        tbody.appendChild(
-          el("tr", {}, [
-            el("td", { text: r.runDate || "" }),
-            el("td", {}, [badge]),
-            el("td", { text: String((r.groups || []).length) }),
-            el("td", { text: `直近${r.historyWindow ?? 3}回` }),
-            el("td", {}, [
-              el("div", { class: "row" }, [
-                el("a", { class: "btn btn--primary", href: `#/runs/${r.id}`, text: "詳細" }),
-                r.batchId ? el("a", { class: "btn", href: `#/plans/${r.batchId}`, text: "プラン" }) : null,
-              ]),
-            ]),
+      const groups = new Map();
+      for (const run of runs) {
+        const month = monthOfRun(run);
+        const list = groups.get(month) || [];
+        list.push(run);
+        groups.set(month, list);
+      }
+      const monthItems = el("div", { class: "history-accordion" });
+      const monthList = [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+      for (const [month, monthlyRuns] of monthList) {
+        const detail = el("details", { class: "history-accordion__item" });
+        const summary = el("summary", { class: "history-accordion__summary" });
+        const planRun = monthlyRuns.find((r) => r.batchId);
+        const planButton = planRun ? el("a", { class: "btn", href: `#/plans/${planRun.batchId}`, text: "月次プラン", onclick: (e) => e.stopPropagation() }) : null;
+
+        summary.appendChild(el("span", { class: "history-accordion__month", text: formatMonthLabel(month) }));
+        const summaryActions = el("div", { class: "history-accordion__summary-actions" }, [
+          el("span", { class: "muted", text: `${monthlyRuns.length}回` }),
+          planButton || null,
+        ]);
+        summary.appendChild(summaryActions);
+        detail.appendChild(summary);
+
+        const table = el("table", { class: "table" });
+        table.appendChild(
+          el("thead", {}, [
+            el("tr", {}, [el("th", { text: "実施日" }), el("th", { text: "状態" }), el("th", { text: "グループ数" }), el("th", { text: "履歴参照" }), el("th", { text: "操作" })]),
           ])
         );
+        const tbody = el("tbody");
+        for (const r of monthlyRuns) {
+          const badge = r.status === "confirmed" ? el("span", { class: "badge badge--ok", text: "確定" }) : el("span", { class: "badge", text: "ドラフト" });
+          tbody.appendChild(
+            el("tr", {}, [
+              el("td", { text: r.runDate || "" }),
+              el("td", {}, [badge]),
+              el("td", { text: String((r.groups || []).length) }),
+              el("td", { text: `直近${r.historyWindow ?? 3}回` }),
+              el("td", {}, [el("a", { class: "btn btn--primary", href: `#/runs/${r.id}`, text: "詳細" })]),
+            ])
+          );
+        }
+        if (monthlyRuns.length === 0) tbody.appendChild(el("tr", {}, [el("td", { colspan: "5", class: "muted", text: "該当する履歴がありません。" })]));
+        table.appendChild(tbody);
+        detail.appendChild(el("div", { class: "history-accordion__content" }, [el("div", { class: "table-wrap" }, [table])]));
+        monthItems.appendChild(detail);
       }
-      if (runs.length === 0) tbody.appendChild(el("tr", {}, [el("td", { colspan: "5", class: "muted", text: "該当する履歴がありません。" })]));
-      table.appendChild(tbody);
-      listArea.replaceChildren(el("div", { class: "card__title" }, [el("span", { text: "履歴" }), el("span", { class: "badge", text: `件数: ${runs.length}` })]), table);
+
+      if (runs.length === 0) {
+        monthItems.appendChild(el("div", { class: "muted", text: "該当する履歴がありません。" }));
+      }
+      listArea.replaceChildren(el("div", { class: "card__title" }, [el("span", { text: "履歴" }), el("span", { class: "badge", text: `件数: ${runs.length}` })],), monthItems);
     }
 
     renderList();
