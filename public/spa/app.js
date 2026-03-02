@@ -190,6 +190,12 @@
     for (const m of base.members) {
       if (m && typeof m === "object" && !("email" in m)) m.email = "";
       if (m && typeof m === "object" && typeof m.email !== "string") m.email = String(m.email || "");
+      if (m && typeof m === "object") {
+        if (!("isActive" in m)) m.isActive = true;
+        if (typeof m.isActive !== "boolean") m.isActive = !!m.isActive;
+        if (!("isTerminated" in m)) m.isTerminated = false;
+        if (typeof m.isTerminated !== "boolean") m.isTerminated = !!m.isTerminated;
+      }
     }
     return base;
   }
@@ -295,7 +301,7 @@
         continue;
       }
       const isParent = parentSet.has(name);
-      const member = { id: uuid(), name, email, isActive: true, isParent, createdAt: ts, updatedAt: ts };
+      const member = { id: uuid(), name, email, isActive: true, isTerminated: false, isParent, createdAt: ts, updatedAt: ts };
       draft.members.push(member);
       byNameMap.set(name, member);
     }
@@ -348,11 +354,11 @@
   }
 
   function activeMembers() {
-    return state.members.filter((m) => m.isActive);
+    return state.members.filter((m) => !m.isTerminated && m.isActive);
   }
 
   function activeParents() {
-    return state.members.filter((m) => m.isActive && m.isParent);
+    return state.members.filter((m) => !m.isTerminated && m.isActive && m.isParent);
   }
 
   function normalizePair(aId, bId) {
