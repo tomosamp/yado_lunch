@@ -1654,6 +1654,7 @@
         el("div", { class: "row" }, [
           el("span", { class: "pill" }, [el("span", { class: "muted", text: "対象月" }), el("span", { text: formatMonthLabel(month) })]),
           el("span", { class: "pill" }, [el("span", { class: "muted", text: "月曜回数" }), el("span", { class: "mono", text: String(runs.length) })]),
+          el("span", { class: "pill" }, [el("span", { class: "muted", text: "開始週" }), el("span", { class: "mono", text: `第${runs[0].startWeek ?? 1}週` })]),
           el("span", { class: "pill" }, [el("span", { class: "muted", text: "有効社員" }), el("span", { class: "mono", text: String(activeCount) })]),
           el("span", { class: "pill" }, [el("span", { class: "muted", text: "親" }), el("span", { class: "mono", text: String(parentCount) })]),
           el("span", { class: "pill" }, [el("span", { class: "muted", text: "履歴参照" }), el("span", { class: "mono", text: `直近${runs[0].historyWindow ?? 3}回` })]),
