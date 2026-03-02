@@ -1482,7 +1482,7 @@
       const startWeek = Number.parseInt(String(startWeekSelect.value || "1"), 10);
       const historyWindow = clampInt(form.querySelector('[name="historyWindow"]').value, 0, 12, 3);
       const actorNote = String(form.querySelector('[name="actorNote"]').value || "").trim();
-      if (!month) return alert("対象月を入力してください。");
+      if (!month) return showFlash("対象月を入力してください。", "error");
       try {
         const seed = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
         const plan = generateMonthlyPlan({ month, historyWindow, seed, startWeek });
@@ -1507,9 +1507,10 @@
           draft.runs.push(...runs);
           return draft;
         });
+        showFlash(`${month}の月次プランを作成しました。`);
         location.hash = `#/plans/${batchId}`;
       } catch (err) {
-        alert(String(err?.message || err));
+        showFlash(String(err?.message || err), "error");
       }
     });
     setStartWeekOptions(monthPicker.getValue());
@@ -1603,7 +1604,7 @@
     const content = el("div");
 
     function rerollAll() {
-      if (isAnyConfirmed) return alert("確定済みが含まれるため、一括再生成できません。");
+      if (isAnyConfirmed) return showFlash("確定済みが含まれるため、一括再生成できません。", "error");
       if (!confirm("この月次プランを一括で再生成しますか？")) return;
       const historyWindow = runs[0].historyWindow ?? 3;
       const startWeek = runs[0].startWeek ?? 1;
@@ -1648,8 +1649,9 @@
           }
           return draft;
         });
+        showFlash("月次プランを再生成しました。");
       } catch (err) {
-        alert(String(err?.message || err));
+        showFlash(String(err?.message || err), "error");
       }
     }
 
@@ -1664,6 +1666,7 @@
         }
         return draft;
       });
+      showFlash("この月次プランを確定しました。");
     }
 
     function deletePlan() {
@@ -1672,6 +1675,7 @@
         draft.runs = draft.runs.filter((r) => r.batchId !== batchId);
         return draft;
       });
+      showFlash("月次プランを削除しました。");
       location.hash = "#/runs";
     }
 
