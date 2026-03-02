@@ -1096,8 +1096,9 @@
           if (!memberId) return showFlash("招待する社員を選択してください。", "error");
           const m = state.members.find((x) => x.id === memberId) || null;
           const other = String(m?.email || "").trim();
-          if (!other) return showFlash(`${m?.name || "選択した社員"}のメールが未登録です。社員画面でメールを登録してください。`, "error");
-          if (!isValidEmail(other)) return showFlash(`${m?.name || "選択した社員"}のメール形式が不正です。社員画面で修正してください。`, "error");
+          const target = m?.name ? honorificName(m.name) : "選択した社員";
+          if (!other) return showFlash(`${target}のメールが未登録です。社員画面でメールを登録してください。`, "error");
+          if (!isValidEmail(other)) return showFlash(`${target}のメール形式が不正です。社員画面で修正してください。`, "error");
           if (!confirm(`Googleカレンダーにテスト予定を作成します。\n\n予定名: ランチ会（自動作成テスト）\n招待先: ${other}\n通知: sendUpdates=all`)) return;
           try {
             const res = await createCalendarTestEvent(other);
@@ -1699,13 +1700,15 @@
           const ids = (g.members || []).map((m) => m.memberId);
           const emails = [];
           const names = [];
+          const namesWithSan = [];
           for (const id of ids) {
             const m = findMember(id);
             const name = m?.name || "(不明)";
             names.push(name);
+            namesWithSan.push(m?.name ? honorificName(name) : name);
             const email = String(m?.email || "").trim();
-            if (!email) missing.push(`${name}（${date} 第${weekNo}週）`);
-            else if (!isValidEmail(email)) missing.push(`${name}（形式不正: ${email}）`);
+            if (!email) missing.push(`${namesWithSan[namesWithSan.length - 1]}（${date} 第${weekNo}週）`);
+            else if (!isValidEmail(email)) missing.push(`${namesWithSan[namesWithSan.length - 1]}（形式不正: ${email}）`);
             else emails.push(email);
           }
 
