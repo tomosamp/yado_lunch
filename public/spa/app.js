@@ -256,8 +256,7 @@
       const msg = String(err?.message || err);
       if (msg.startsWith("conflict")) {
         setRemoteStatus("conflict", msg);
-        // 競合時は勝手に上書きせず、ユーザー操作に委ねる
-        alert("別のユーザーが先に更新した可能性があります（競合）。ダッシュボードの「同期」から再読込/強制上書きを選んでください。");
+        showFlash("別のユーザーが先に更新した可能性があります。競合のため、ダッシュボードから再読込/強制上書きを選んでください。", "error");
       } else if (msg.includes("unauthorized")) {
         setRemoteStatus("unauth", msg);
       } else if (msg.includes("db_not_configured")) {
