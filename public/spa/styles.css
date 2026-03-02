@@ -199,6 +199,47 @@ body {
   background: rgba(244, 63, 94, 0.12);
 }
 
+.action-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.action-menu__trigger {
+  cursor: pointer;
+  list-style: none;
+  appearance: none;
+}
+
+.action-menu__trigger::marker,
+.action-menu__trigger::-webkit-details-marker {
+  display: none;
+}
+
+.action-menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 145px;
+  padding: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 3;
+}
+
+.action-menu:not([open]) .action-menu__panel {
+  display: none;
+}
+
+.action-menu__panel .btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 .card__title {
   font-size: 14px;
   font-weight: 750;
@@ -354,7 +395,7 @@ input[type="checkbox"] {
   text-align: left;
   padding: 12px 10px;
   border-bottom: 1px solid var(--border);
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .table th {
