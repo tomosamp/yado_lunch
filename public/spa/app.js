@@ -1797,14 +1797,16 @@
       ]);
     }
 
-    const modeToggle = el("div", { class: "row" }, [
-      el("span", { class: "muted", text: "表示:" }),
-      el("button", { class: `btn ${viewMode === "matrix" ? "btn--primary" : ""}`.trim(), text: "表（親×月曜）", onclick: () => ((viewMode = "matrix"), rerender()) }),
-      el("button", { class: `btn ${viewMode === "weekly" ? "btn--primary" : ""}`.trim(), text: "週カード", onclick: () => ((viewMode = "weekly"), rerender()) }),
-    ]);
+    function modeToggle() {
+      return el("div", { class: "row" }, [
+        el("span", { class: "muted", text: "表示:" }),
+        el("button", { class: `btn ${viewMode === "matrix" ? "btn--primary" : ""}`.trim(), text: "表（親×月曜）", onclick: () => ((viewMode = "matrix"), rerender()) }),
+        el("button", { class: `btn ${viewMode === "weekly" ? "btn--primary" : ""}`.trim(), text: "週カード", onclick: () => ((viewMode = "weekly"), rerender()) }),
+      ]);
+    }
 
     function rerender() {
-      content.replaceChildren(modeToggle, el("div", { class: "hr" }), buildSummary(), el("div", { class: "hr" }), viewMode === "weekly" ? buildWeeklyCards() : buildMatrixTable());
+      content.replaceChildren(modeToggle(), el("div", { class: "hr" }), buildSummary(), el("div", { class: "hr" }), viewMode === "weekly" ? buildWeeklyCards() : buildMatrixTable());
     }
     rerender();
 
@@ -1824,20 +1826,22 @@
       isBatched ? el("a", { class: "btn btn--primary", href: `#/plans/${run.batchId}`, text: "月次プランへ" }) : null,
     ]);
 
-    const modeToggle = el("div", { class: "row" }, [
-      el("span", { class: "muted", text: "表示:" }),
-      el("button", { class: `btn ${viewMode === "cards" ? "btn--primary" : ""}`.trim(), text: "カード", onclick: () => ((viewMode = "cards"), renderBody()) }),
-      el("button", { class: `btn ${viewMode === "table" ? "btn--primary" : ""}`.trim(), text: "表", onclick: () => ((viewMode = "table"), renderBody()) }),
-    ]);
-
     const body = el("div", { class: "card" });
+
+    function modeToggle() {
+      return el("div", { class: "row" }, [
+        el("span", { class: "muted", text: "表示:" }),
+        el("button", { class: `btn ${viewMode === "cards" ? "btn--primary" : ""}`.trim(), text: "カード", onclick: () => ((viewMode = "cards"), renderBody()) }),
+        el("button", { class: `btn ${viewMode === "table" ? "btn--primary" : ""}`.trim(), text: "表", onclick: () => ((viewMode = "table"), renderBody()) }),
+      ]);
+    }
 
     function renderBody() {
       body.replaceChildren(
         el("div", { class: "card__title" }, [el("span", { text: `実施日: ${run.runDate}` }), badge]),
         el("div", { class: "row" }, [
           el("span", { class: "pill" }, [el("span", { class: "muted", text: "履歴参照" }), el("span", { class: "mono", text: `直近${run.historyWindow ?? 3}回` })]),
-          modeToggle,
+          modeToggle(),
         ]),
         el("div", { class: "hr" }),
         viewMode === "table" ? renderRunTable(run) : renderRunCards(run)
